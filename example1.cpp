@@ -29,7 +29,7 @@
 
 #define THREADS 10
 
-using parallel_smile_set = phmap::parallel_flat_hash_map<std::string, int>;
+using parallel_smile_set = phmap::parallel_flat_hash_set<std::string, std::hash<std::string>, std::equal_to<std::string>, std::allocator<std::string>, 6, std::mutex>;
 
 namespace {
 
@@ -122,11 +122,11 @@ std::unordered_map<std::string, int> getInitalSet(std::string const &filename) {
         int counter =0;
         for (std::string line; std::getline(ifs, line);) {
             q.enqueue(line);
-            counter++;
-            if (counter >= 100000) {
-                *stop = false;
-                return;
-            }
+//            counter++;
+//            if (counter >= 100000) {
+//                *stop = false;
+//                return;
+//            }
         }
         *stop = false;
     }, &doneProducer);
@@ -204,6 +204,7 @@ int main(int argc, char **argv) {
         serializer.Write(email_) || Die();
         std::cout << "wrote" << std::endl;
         serializer.writer().stream().close();
+        return 0;
     } else {
         using Reader = nop::StreamReader<std::ifstream>;
         nop::Deserializer<Reader> deserializer{argv[2]};
@@ -215,8 +216,7 @@ int main(int argc, char **argv) {
     for (std::pair<std::string, int> element : email_)
     {
         std::string st = element.first;
-        int a = element.second;
-        email.insert({st, a});
+        email.insert(st);
     }
 
     std::cout << "new email " << email.size() <<std::endl;
@@ -268,7 +268,7 @@ int main(int argc, char **argv) {
 
                             if (value.has_value()) {
                                 valid_counter->increment();
-                                if (std::get<1>(meset->insert({value.value(), 1})))
+                                if (std::get<1>(meset->insert(value.value())))
                                     unqiue_counter->increment();
                             }
                         }
@@ -296,7 +296,7 @@ int main(int argc, char **argv) {
         value = consumeItem(item);
         total_counters[0].increment();
         if (value.has_value()) {
-            if (std::get<1>(email.insert({value.value(),1})))
+            if (std::get<1>(email.insert(value.value())))
                 valid_counters[0].increment();
         }
     }
