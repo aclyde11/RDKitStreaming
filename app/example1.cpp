@@ -36,22 +36,26 @@ void task(std::string const& item, MutexCounter *total_counter, MutexCounter *va
 
 void monitarThread(std::vector<MutexCounter> * valid_counters,
                    std::vector<MutexCounter> * unique_counters,
-                   std::vector<MutexCounter> * total_counters,  int monitar_freq, std::atomic<bool> *stop, moodycamel::ConcurrentQueue<std::string> *q, moodycamel::ConcurrentQueue<std::string> *q_out) {
+                   std::vector<MutexCounter> * total_counters,
+                   std::vector<MutexCounter> * enamine_counter,
+                   int monitar_freq, std::atomic<bool> *stop, moodycamel::ConcurrentQueue<std::string> *q, moodycamel::ConcurrentQueue<std::string> *q_out) {
 
-    std::cout <<"time,queuesize,writersize,total,valid,unique"<<std::endl;
+    std::cout <<"time,queuesize,writersize,total,valid,unique,uniqueenamine"<<std::endl;
     while(!(stop->load(std::memory_order_acquire))) {
         std::this_thread::sleep_for(std::chrono::seconds(monitar_freq));
         int total = 0;
         int valid = 0;
         int unique = 0;
+        int enamine = 0;
 
         for(size_t i = 0; i < valid_counters->size(); i++) {
             total += (*total_counters)[i].view();
             valid += (*valid_counters)[i].view();
             unique += (*unique_counters)[i].view();
+            enamine += (*enamine_counter)[i].view();
         }
 
-        std::cout << std::time(nullptr) << "," << q->size_approx() << "," << q_out->size_approx() << "," << total << "," << valid << "," << unique << std::endl;
+        std::cout << std::time(nullptr) << "," << q->size_approx() << "," << q_out->size_approx() << "," << total << "," << valid << "," << unique <<"," << enamine << std::endl;
     }
 }
 
@@ -76,9 +80,10 @@ int main(int argc, char **argv) {
     std::vector<MutexCounter> total_counters(n_threads);
     std::vector<MutexCounter> valid_counters(n_threads);
     std::vector<MutexCounter> unique_counters(n_threads);
+    std::vector<MutexCounter> enamine_unique_counters(n_threads);
 
-    std::unordered_map<std::string, bool> initial_set;
-    parallel_smile_set dbase;
+    std::unordered_map<std::string, bool> initial_set, big_initial_set;
+    parallel_smile_set dbase, dbase_enamine;
 
     if (LOAD) {
         std::cout << "Starting here." << std::endl;
@@ -104,6 +109,20 @@ int main(int argc, char **argv) {
         std::cout << initial_set.size() << std::endl;
     }
 
+     {
+        using Reader = nop::StreamReader<std::ifstream>;
+        std::cout << "reading in " << argv[4] << " as ENAMINE databse of SMILES." << std::endl;
+        nop::Deserializer<Reader> deserializer{argv[4]};
+        deserializer.Read(&big_initial_set) || Die();
+        std::cout << initial_set.size() << std::endl;
+    }
+
+    //convert STL to phmap
+    for (std::pair<std::string, bool>  element : big_initial_set)
+    {
+        dbase_enamine.insert(element.first);
+    }
+
     //convert STL to phmap
     for (std::pair<std::string, bool>  element : initial_set)
     {
@@ -111,6 +130,7 @@ int main(int argc, char **argv) {
     }
 
     std::cout << "new dbase has initial size " << dbase.size() << " Moving on to your problem." <<std::endl;
+    std::cout << "new dbase_enaine has initial size " << dbase.size() << " Moving on to your problem." <<std::endl;
 
     //Producer Thread
     std::atomic<bool> doneProducer(true);
@@ -127,24 +147,28 @@ int main(int argc, char **argv) {
     std::thread monitar(
             [&](std::vector<MutexCounter> * valid_counters,
                 std::vector<MutexCounter> * unique_counters,
-                std::vector<MutexCounter> * total_counters,  std::atomic<bool> *stop) {
+                std::vector<MutexCounter> * total_counters,
+                std::vector<MutexCounter> * enamine_counters,
+                std::atomic<bool> *stop) {
 
-                monitarThread(valid_counters, unique_counters, total_counters, 5, stop, &q, &q_out);
-            }, &valid_counters, &unique_counters, &total_counters, &stopMonitar);
+                monitarThread(valid_counters, unique_counters, total_counters, enamine_counters, 5, stop, &q, &q_out);
+            }, &valid_counters, &unique_counters, &total_counters, &enamine_unique_counters, &stopMonitar);
 
 
     //Writer Thread
     std::atomic<bool> stopWriter(false);
     std::thread writer(
-            [&]( std::atomic<bool> *stop, parallel_smile_set *meset) {
+            [&]( std::atomic<bool> *stop, parallel_smile_set *meset, parallel_smile_set *enamine) {
                 while (!(stop->load(std::memory_order_acquire))) {
                     std::string item;
                     while (q_out.try_dequeue(item)) {
                         if (std::get<1>(meset->insert(item)))
                             unique_counters[0].increment();
+                        if (std::get<1>(enamine->insert(item)))
+                            enamine_unique_counters[0].increment();
                     }
                 }
-            }, &stopWriter, &dbase);
+            }, &stopWriter, &dbase, &dbase_enamine);
 
     // Consumers
     for (size_t i = 1; i != n_threads; ++i) {
@@ -190,19 +214,24 @@ int main(int argc, char **argv) {
     while (q_out.try_dequeue(item)) {
         if (std::get<1>(dbase.insert(item)))
             unique_counters[0].increment();
+        if (std::get<1>(dbase_enamine.insert(item)))
+            enamine_unique_counters[0].increment();
     }
 
     int unique = 0;
     int total = 0;
     int valid = 0;
+    int enamine =0;
     for (size_t i = 0; i < n_threads; i++) {
         unique += unique_counters[i].view();
         total += total_counters[i].view();
         valid += valid_counters[i].view();
-
+        enamine += enamine_unique_counters[i].view();
     }
 
-    std::cout << "total,unique,valid" << std::endl;
-    std::cout << total << ", " << unique << ", " << valid << std::endl;
+    std::cout << "total,unique,valid,emiane" << std::endl;
+    std::cout << total << ", " << unique << ", " << valid << "," << enamine << std::endl;
     std::cout << dbase.size() << std::endl;
+    std::cout << dbase_enamine.size() << std::endl;
+
 }
