@@ -80,8 +80,9 @@ boost::optional<std::string> consumeItem(std::string const &item) {
 
 void monitarThread(MutexCounter *valid_counters,
                    MutexCounter *unique_counters,
-                   MutexCounter *total_counters,  int monitar_freq, std::atomic<bool> *stop) {
+                   MutexCounter *total_counters,  int monitar_freq, std::atomic<bool> *stop, moodycamel::ConcurrentQueue<std::string> *q) {
 
+    std::cout <<"queuesize,total,valid,unqiue"<<std::endl;
     while(!(stop->load(std::memory_order_acquire))) {
         std::this_thread::sleep_for(std::chrono::seconds(5));
         int total = 0;
@@ -94,7 +95,7 @@ void monitarThread(MutexCounter *valid_counters,
             unique += unique_counters[i].view();
         }
 
-        std::cout << total << ", " << valid << ", " << unique << std::endl;
+        std::cout << q->size_approx() << "," << total << "," << valid << "," << unique << std::endl;
     }
 }
 
@@ -242,7 +243,7 @@ int main(int argc, char **argv) {
                 MutexCounter *unique_counters,
                 MutexCounter *total_counters,  std::atomic<bool> *stop) {
 
-                monitarThread(valid_counters, unique_counters, total_counters, 10, stop);
+                monitarThread(valid_counters, unique_counters, total_counters, 5, stop, &q);
             }, valid_counters, unique_counters, total_counters, &stopMonitar);
 
     // Consumers
