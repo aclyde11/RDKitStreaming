@@ -137,7 +137,12 @@ namespace SMR {
         threads.emplace_back([&](std::atomic<bool> *stop) {
             std::ifstream ifs(filename);
             for (std::string line; std::getline(ifs, line);) {
-                q.enqueue(line);
+                if (q.size_approx() < 200000) {
+                    q.enqueue(line);
+                } else {
+                    std::this_thread::sleep_for(std::chrono::seconds(1));
+                    q.enqueue(line);
+                }
             }
             *stop = false;
         }, &doneProducer);
