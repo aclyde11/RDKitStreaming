@@ -198,13 +198,13 @@ int main(int argc, char **argv) {
     if (LOAD) {
         email_ = getInitalSet("/Users/austin/train.txt");
         using Writer = nop::StreamWriter<std::ofstream>;
-        nop::Serializer<Writer> serializer{"example.txt"};
+        nop::Serializer<Writer> serializer{argv[2]};
         serializer.Write(email_) || Die();
         std::cout << "wrote" << std::endl;
         serializer.writer().stream().close();
     } else {
         using Reader = nop::StreamReader<std::ifstream>;
-        nop::Deserializer<Reader> deserializer{"example.txt"};
+        nop::Deserializer<Reader> deserializer{argv[2]};
         deserializer.Read(&email_) || Die();
         std::cout << email_.size() << std::endl;
     }
