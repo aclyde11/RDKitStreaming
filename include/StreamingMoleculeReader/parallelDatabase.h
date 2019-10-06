@@ -135,7 +135,7 @@ namespace SMR {
         std::atomic<size_t> doneConsumers(0);
 
         // Producers
-        threads[0] = std::thread([&](std::atomic<bool> *stop) {
+        threads.emplace_back([&](std::atomic<bool> *stop) {
             std::ifstream ifs(filename);
             for (std::string line; std::getline(ifs, line);) {
                 q.enqueue(line);
