@@ -1,5 +1,4 @@
 #include <iostream>
-#include <optional>
 #include <fstream>
 #include <iostream>
 #include <bitset>
@@ -7,6 +6,8 @@
 #include <string>
 #include <atomic>
 #include <unordered_map>
+
+#include <boost/optional.hpp>
 
 #include "concurrentqueue.h"
 
@@ -35,7 +36,7 @@ namespace {
 
 }
 
-std::optional<std::string> getSmileCannon(std::string const &smi) {
+boost::optional<std::string> getSmileCannon(std::string const &smi) {
     RDKit::ROMol *mol1;
     try {
         mol1 = RDKit::SmilesToMol(smi);
@@ -53,7 +54,7 @@ std::optional<std::string> getSmileCannon(std::string const &smi) {
 }
 
 
-std::optional<std::string> consumeItem(std::string const &item) {
+boost::optional<std::string> consumeItem(std::string const &item) {
     return getSmileCannon(item);
 }
 
@@ -118,7 +119,7 @@ std::unordered_map<std::string, int> getInitalSet(std::string const &filename) {
                 [&](
                         std::atomic<bool> *stop, std::unordered_map<std::string, int> *meset, std::mutex *lock) {
                     std::string item;
-                    std::optional<std::string> value;
+                    boost::optional<std::string> value;
                     bool itemsLeft;
                     do {
                         // It's important to fence (if the producers have finished) *before* dequeueing
@@ -146,7 +147,7 @@ std::unordered_map<std::string, int> getInitalSet(std::string const &filename) {
 
     // Collect any leftovers (could be some if e.g. consumers finish before producers)
     std::string item;
-    std::optional<std::string> value;
+    boost::optional<std::string> value;
     while (q.try_dequeue(item)) {
         value = consumeItem(item);
         if (value.has_value()) {
@@ -225,7 +226,7 @@ int main(int argc, char **argv) {
                          MutexCounter *unqiue_counter, //std::mutex *unqiue_counter_lock,
                          std::atomic<bool> *stop, parallel_smile_set *meset) {
                     std::string item;
-                    std::optional<std::string> value;
+                    boost::optional<std::string> value;
                     bool itemsLeft;
                     do {
                         // It's important to fence (if the producers have finished) *before* dequeueing
@@ -257,7 +258,7 @@ int main(int argc, char **argv) {
 
     // Collect any leftovers (could be some if e.g. consumers finish before producers)
     std::string item;
-    std::optional<std::string> value;
+    boost::optional<std::string> value;
     while (q.try_dequeue(item)) {
         value = consumeItem(item);
         total_counters[0].increment();
