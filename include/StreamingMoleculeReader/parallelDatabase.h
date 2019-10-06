@@ -41,14 +41,16 @@ namespace SMR {
     };
 
     /**
- * Generic WorkQueue Function
- */
-    std::unordered_map<std::string, bool> getInitialSetFromFile(size_t n_threads = 4,
+     * Generic WorkQueue Function
+     */
+    std::unordered_map<std::string, bool> getInitialSetFromFile( size_t n_threads = 4,
                                                                 size_t init_size = 2000000) {
         std::unordered_map<std::string, bool> email{init_size};
         std::mutex lock;
 
         moodycamel::ConcurrentQueue<std::string> q;
+        moodycamel::ConcurrentQueue<std::string> q_out;
+
         std::vector<std::thread> threads;
         std::atomic<bool> doneProducer(true);
         std::atomic<size_t> doneConsumers(0);
@@ -56,7 +58,12 @@ namespace SMR {
         // Producers
         threads.emplace_back([&](std::atomic<bool> *stop) {
             for (std::string line; std::getline(std::cin, line);) {
-                q.enqueue(line);
+                if (q.size_approx() < 500000) {
+                    q.enqueue(line);
+                } else {
+                    std::this_thread::sleep_for(std::chrono::seconds(1));
+                    q.enqueue(line);
+                }
             }
             *stop = false;
         }, &doneProducer);
@@ -73,9 +80,7 @@ namespace SMR {
                                 //work here:
                                 boost::optional<std::string> value = getCannonicalSmileFromSmile(item);
                                 if (value.has_value()) {
-                                    lock->lock();
-                                    meset->insert({value.value(), true});
-                                    lock->unlock();
+                                    q_out.enqueue(value.value());
                                 }
                             }
                         } while (itemsLeft ||
@@ -86,16 +91,30 @@ namespace SMR {
         //Monitar Thread
         std::atomic<bool> stopMonitar(false);
         std::thread monitar(
-                [&](moodycamel::ConcurrentQueue<std::string> *q, std::atomic<bool> *stop, std::unordered_map<std::string,bool> *memap) {
+                [&](moodycamel::ConcurrentQueue<std::string> *q, std::atomic<bool> *stop) {
 
-                    std::cout << "time elapsed,queuesize,calcsize" << std::endl;
+                    std::cout << "time,queuesize,total,valid,unique" << std::endl;
                     auto start_time = std::time(nullptr);
                     while (!(stop->load(std::memory_order_acquire))) {
                         std::this_thread::sleep_for(std::chrono::seconds(10));
 
-                        std::cout << std::time(nullptr) - start_time << "," << q->size_approx() << "," << memap->size() << std::endl;
+                        std::cout << std::time(nullptr) - start_time << "," << q->size_approx() << ", " << q_out.size_approx() << ", " << email.size() << std::endl;
                     }
-                }, &q, &stopMonitar, &email);
+                }, &q, &stopMonitar);
+
+        //Writer Thread
+        std::atomic<bool> stopWriter(false);
+        std::thread writer(
+                [&]( std::atomic<bool> *stop, std::unordered_map<std::string, bool> *meset) {
+
+                    std::cout << "time,queuesize,total,valid,unique" << std::endl;
+                    while (!(stop->load(std::memory_order_acquire))) {
+                        std::string item;
+                        while (q_out.try_dequeue(item)) {
+                            meset->insert({item, true});
+                        }
+                    }
+                }, &stopWriter, &email);
 
         // Wait for all threads
         for (size_t i = 0; i != n_threads; ++i) {
@@ -105,6 +124,10 @@ namespace SMR {
         std::cout << "ok everyone else finsihed. Waiting for monitar" << std::endl;
         stopMonitar = true;
         monitar.join();
+
+        std::cout << "ok everyone else finsihed. Waiting for writer." << std::endl;
+        stopWriter = true;
+        writer.join();
 
         // Collect any leftovers (could be some if e.g. consumers finish before producers)
         std::string item;

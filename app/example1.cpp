@@ -17,7 +17,7 @@
 #include <StreamingMoleculeReader/parallelDatabase.h>
 
 
-using parallel_smile_set = phmap::parallel_flat_hash_set<std::string, std::hash<std::string>, std::equal_to<std::string>, std::allocator<std::string>, 8, std::mutex>;
+using parallel_smile_set = phmap::parallel_flat_hash_set<std::string, std::hash<std::string>, std::equal_to<std::string>, std::allocator<std::string>, 8>;
 using namespace SMR;
 
 // for ceralizing
@@ -25,21 +25,20 @@ namespace {
     auto Die() { return nop::Die(std::cerr); }
 }
 
-void task(std::string const& item, MutexCounter *total_counter, MutexCounter *valid_counter, MutexCounter *unqiue_counter, parallel_smile_set *meset) {
+void task(std::string const& item, MutexCounter *total_counter, MutexCounter *valid_counter, moodycamel::ConcurrentQueue<std::string> *qout) {
     boost::optional<std::string> value = getCannonicalSmileFromSmile(item);
     total_counter->increment();
     if (value.has_value()) {
         valid_counter->increment();
-        if (std::get<1>(meset->insert(value.value())))
-            unqiue_counter->increment();
+        qout->enqueue(value.value());
     }
 }
 
 void monitarThread(std::vector<MutexCounter> * valid_counters,
                    std::vector<MutexCounter> * unique_counters,
-                   std::vector<MutexCounter> * total_counters,  int monitar_freq, std::atomic<bool> *stop, moodycamel::ConcurrentQueue<std::string> *q) {
+                   std::vector<MutexCounter> * total_counters,  int monitar_freq, std::atomic<bool> *stop, moodycamel::ConcurrentQueue<std::string> *q, moodycamel::ConcurrentQueue<std::string> *q_out) {
 
-    std::cout <<"time,queuesize,total,valid,unique"<<std::endl;
+    std::cout <<"time,queuesize,writersize,total,valid,unique"<<std::endl;
     while(!(stop->load(std::memory_order_acquire))) {
         std::this_thread::sleep_for(std::chrono::seconds(monitar_freq));
         int total = 0;
@@ -52,7 +51,7 @@ void monitarThread(std::vector<MutexCounter> * valid_counters,
             unique += (*unique_counters)[i].view();
         }
 
-        std::cout << std::time(nullptr) << "," << q->size_approx() << "," << total << "," << valid << "," << unique << std::endl;
+        std::cout << std::time(nullptr) << "," << q->size_approx() << "," << q_out->size_approx() << "," << total << "," << valid << "," << unique << std::endl;
     }
 }
 
@@ -68,6 +67,8 @@ int main(int argc, char **argv) {
 
     // parallel test.
     moodycamel::ConcurrentQueue<std::string> q;
+    moodycamel::ConcurrentQueue<std::string> q_out;
+
     std::vector<std::thread> threads;
 
     std::atomic<int> doneConsumers(0);
@@ -80,13 +81,14 @@ int main(int argc, char **argv) {
     parallel_smile_set dbase;
 
     if (LOAD) {
-        if (argc < 5) {
-            std::cout << "check your args. Exiting." << std::endl;
-            return 1;
+        std::cout << "Starting here." << std::endl;
+        if (argc == 5) {
+            std::cout << "Reading from file." << std::endl;
+            initial_set = getInitialSetFromFile(argv[4], n_threads, 1000000000);
+        } else {
+            initial_set = getInitialSetFromFile(n_threads, 1000000000);
         }
 
-        std::cout << "Starting here." << std::endl;
-        initial_set = getInitialSetFromFile("/vol/ml/aclyde/ENAMINE_SMILES.txt", n_threads, 1000000000);
         std::cout << "Got set." << std::endl;
         using Writer = nop::StreamWriter<std::ofstream>;
         nop::Serializer<Writer> serializer{argv[3]};
@@ -127,14 +129,28 @@ int main(int argc, char **argv) {
                 std::vector<MutexCounter> * unique_counters,
                 std::vector<MutexCounter> * total_counters,  std::atomic<bool> *stop) {
 
-                monitarThread(valid_counters, unique_counters, total_counters, 5, stop, &q);
+                monitarThread(valid_counters, unique_counters, total_counters, 5, stop, &q, &q_out);
             }, &valid_counters, &unique_counters, &total_counters, &stopMonitar);
+
+
+    //Writer Thread
+    std::atomic<bool> stopWriter(false);
+    std::thread writer(
+            [&]( std::atomic<bool> *stop, parallel_smile_set *meset) {
+                while (!(stop->load(std::memory_order_acquire))) {
+                    std::string item;
+                    while (q_out.try_dequeue(item)) {
+                        if (std::get<1>(meset->insert(item)))
+                            unique_counters[0].increment();
+                    }
+                }
+            }, &stopWriter, &dbase);
 
     // Consumers
     for (size_t i = 1; i != n_threads; ++i) {
         threads.emplace_back(
-                [&](MutexCounter *total_counter, MutexCounter *valid_counter, MutexCounter *unqiue_counter,
-                        std::atomic<bool> *stop, parallel_smile_set *meset) {
+                [&](MutexCounter *total_counter, MutexCounter *valid_counter,
+                        std::atomic<bool> *stop) {
                     std::string item;
                     boost::optional<std::string> value;
                     bool itemsLeft;
@@ -143,13 +159,12 @@ int main(int argc, char **argv) {
                         itemsLeft = stop->load(std::memory_order_acquire);
                         while (q.try_dequeue(item)) {
                             itemsLeft = true;
-                            task(item, total_counter, valid_counter, unqiue_counter, meset);
+                            task(item, total_counter, valid_counter, &q_out);
                         }
                     } while (itemsLeft || doneConsumers.fetch_add(1, std::memory_order_acq_rel) + 1 == (n_threads - 1));
                 }, &total_counters[i],
                    &valid_counters[i],
-                   &unique_counters[i],
-                   &doneProducer, &dbase);
+                   &doneProducer);
     }
 
     // Wait for all threads
@@ -161,11 +176,20 @@ int main(int argc, char **argv) {
     stopMonitar = true;
     monitar.join();
 
+    std::cout << "ok everyone else finsihed. Waiting for Writer" << std::endl;
+    stopWriter = true;
+    writer.join();
+
     // Collect any leftovers (could be some if e.g. consumers finish before producers)
     std::string item;
     boost::optional<std::string> value;
     while (q.try_dequeue(item)) {
-        task(item, &total_counters[0], &valid_counters[0], &unique_counters[0], &dbase);
+        task(item, &total_counters[0], &valid_counters[0], &q_out);
+    }
+
+    while (q_out.try_dequeue(item)) {
+        if (std::get<1>(dbase.insert(item)))
+            unique_counters[0].increment();
     }
 
     int unique = 0;
