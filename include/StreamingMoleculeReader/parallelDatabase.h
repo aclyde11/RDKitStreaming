@@ -139,7 +139,7 @@ namespace SMR {
         threads.emplace_back([&](std::atomic<bool> *stop) {
             std::ifstream ifs(filename);
             for (std::string line; std::getline(ifs, line);) {
-                if (q.size_approx() < 200000) {
+                if (q.size_approx() < 500000) {
                     q.enqueue(line);
                 } else {
                     std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -179,7 +179,7 @@ namespace SMR {
                     while (!(stop->load(std::memory_order_acquire))) {
                         std::this_thread::sleep_for(std::chrono::seconds(10));
 
-                        std::cout << std::time(nullptr) - start_time << "," << q->size_approx() << ", " << q_out.size_approx() << std::endl;
+                        std::cout << std::time(nullptr) - start_time << "," << q->size_approx() << ", " << q_out.size_approx() << ", " << email.size() << std::endl;
                     }
                 }, &q, &stopMonitar);
 
