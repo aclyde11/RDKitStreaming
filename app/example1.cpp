@@ -113,21 +113,28 @@ int main(int argc, char **argv) {
         using Reader = nop::StreamReader<std::ifstream>;
         std::cout << "reading in " << argv[4] << " as ENAMINE databse of SMILES." << std::endl;
         nop::Deserializer<Reader> deserializer{argv[4]};
+        big_initial_set.reserve(1000000000);
         deserializer.Read(&big_initial_set) || Die();
         std::cout << initial_set.size() << std::endl;
     }
 
+    dbase_enamine.reserve(big_initial_set.size());
     //convert STL to phmap
     for (std::pair<std::string, bool>  element : big_initial_set)
     {
         dbase_enamine.insert(element.first);
     }
+    big_initial_set.clear();
+    std::cout << "loadded huge map into struct." << std::endl;
 
     //convert STL to phmap
     for (std::pair<std::string, bool>  element : initial_set)
     {
         dbase.insert(element.first);
     }
+
+    std::cout << "Cleaning..." << std::endl;
+    initial_set.clear();
 
     std::cout << "new dbase has initial size " << dbase.size() << " Moving on to your problem." <<std::endl;
     std::cout << "new dbase_enaine has initial size " << dbase.size() << " Moving on to your problem." <<std::endl;
