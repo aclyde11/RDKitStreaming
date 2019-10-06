@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
             return 1;
         }
 
-        initial_set = getInitialSetFromFile(argv[4], n_threads, 1000000000);
+        initial_set = getInitialSetFromFile(n_threads, 1000000000);
         using Writer = nop::StreamWriter<std::ofstream>;
         nop::Serializer<Writer> serializer{argv[3]};
         serializer.Write(initial_set) || Die();
