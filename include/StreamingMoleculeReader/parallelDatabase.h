@@ -129,6 +129,8 @@ namespace SMR {
         std::mutex lock;
 
         moodycamel::ConcurrentQueue<std::string> q;
+        moodycamel::ConcurrentQueue<std::string> q_out;
+
         std::vector<std::thread> threads;
         std::atomic<bool> doneProducer(true);
         std::atomic<size_t> doneConsumers(0);
@@ -159,9 +161,7 @@ namespace SMR {
                                 //work here:
                                 boost::optional<std::string> value = getCannonicalSmileFromSmile(item);
                                 if (value.has_value()) {
-                                    lock->lock();
-                                    meset->insert({value.value(), true});
-                                    lock->unlock();
+                                    q_out.enqueue(value.value());
                                 }
                             }
                         } while (itemsLeft ||
@@ -179,10 +179,23 @@ namespace SMR {
                     while (!(stop->load(std::memory_order_acquire))) {
                         std::this_thread::sleep_for(std::chrono::seconds(10));
 
-
-                        std::cout << std::time(nullptr) - start_time << "," << q->size_approx();
+                        std::cout << std::time(nullptr) - start_time << "," << q->size_approx() << ", " << q_out.size_approx() << std::endl;
                     }
                 }, &q, &stopMonitar);
+
+        //Writer Thread
+        std::atomic<bool> stopWriter(false);
+        std::thread writer(
+                [&]( std::atomic<bool> *stop, std::unordered_map<std::string, bool> *meset) {
+
+                    std::cout << "time,queuesize,total,valid,unique" << std::endl;
+                    while (!(stop->load(std::memory_order_acquire))) {
+                        std::string item;
+                        while (q_out.try_dequeue(item)) {
+                            meset->insert({item, true});
+                        }
+                    }
+                }, &stopWriter, &email);
 
         // Wait for all threads
         for (size_t i = 0; i != n_threads; ++i) {
@@ -192,6 +205,10 @@ namespace SMR {
         std::cout << "ok everyone else finsihed. Waiting for monitar" << std::endl;
         stopMonitar = true;
         monitar.join();
+
+        std::cout << "ok everyone else finsihed. Waiting for writer." << std::endl;
+        stopWriter = true;
+        writer.join();
 
         // Collect any leftovers (could be some if e.g. consumers finish before producers)
         std::string item;
