@@ -5,6 +5,7 @@
 #include <cinttypes>
 #include <string>
 #include <atomic>
+#include <chrono>
 #include <unordered_map>
 
 #include <boost/optional.hpp>
@@ -36,6 +37,25 @@ namespace {
 
 }
 
+struct MutexCounter {
+    std::mutex lock;
+    int value;
+
+    void increment() {
+//        lock.lock();
+        value += 1;
+//        lock.unlock();
+    }
+
+    int view() {
+        int tmp;
+        lock.lock();
+        tmp = value;
+        lock.unlock();
+        return tmp;
+    }
+};
+
 boost::optional<std::string> getSmileCannon(std::string const &smi) {
     RDKit::ROMol *mol1;
     try {
@@ -58,30 +78,26 @@ boost::optional<std::string> consumeItem(std::string const &item) {
     return getSmileCannon(item);
 }
 
-void monitarThread(int **valid_counters, std::mutex **valid_counter_locks,
-                   int **unique_counters, std::mutex **unique_counter_locks,
-                   int **total_counters, std::mutex **total_counter_locks, int monitar_freq) {
+void monitarThread(MutexCounter *valid_counters,
+                   MutexCounter *unique_counters,
+                   MutexCounter *total_counters,  int monitar_freq, std::atomic<bool> *stop) {
 
+    while(!(stop->load(std::memory_order_acquire))) {
+        std::this_thread::sleep_for(std::chrono::seconds(5));
+        int total = 0;
+        int valid = 0;
+        int unique = 0;
+
+        for(int i = 0; i < THREADS; i++) {
+            total += total_counters[i].view();
+            valid += valid_counters[i].view();
+            unique += unique_counters[i].view();
+        }
+
+        std::cout << total << ", " << valid << ", " << unique << std::endl;
+    }
 }
 
-struct MutexCounter {
-    std::mutex lock;
-    int value;
-
-    void increment() {
-//        lock.lock();
-        value += 1;
-//        lock.unlock();
-    }
-
-    int view() {
-        int tmp;
-        lock.lock();
-        tmp = value;
-        lock.unlock();
-        return tmp;
-    }
-};
 
 
 std::unordered_map<std::string, int> getInitalSet(std::string const &filename) {
@@ -218,6 +234,17 @@ int main(int argc, char **argv) {
         *stop = false;
     }, &doneProducer);
 
+    std::atomic<bool> stopMonitar(false);
+    //monitar
+
+    std::thread monitar(
+            [&](MutexCounter *valid_counters,
+                MutexCounter *unique_counters,
+                MutexCounter *total_counters,  std::atomic<bool> *stop) {
+
+                monitarThread(valid_counters, unique_counters, total_counters, 10, stop);
+            }, valid_counters, unique_counters, total_counters, &stopMonitar);
+
     // Consumers
     for (int i = 1; i != THREADS; ++i) {
         threads[i] = std::thread(
@@ -255,6 +282,10 @@ int main(int argc, char **argv) {
          ++i) {
         threads[i].join();
     }
+
+    std::cout << "ok everyone else finsihed. Waiting for monitar" << std::endl;
+    stopMonitar = true;
+    monitar.join();
 
     // Collect any leftovers (could be some if e.g. consumers finish before producers)
     std::string item;
