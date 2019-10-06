@@ -86,17 +86,16 @@ namespace SMR {
         //Monitar Thread
         std::atomic<bool> stopMonitar(false);
         std::thread monitar(
-                [&](moodycamel::ConcurrentQueue<std::string> *q, std::atomic<bool> *stop) {
+                [&](moodycamel::ConcurrentQueue<std::string> *q, std::atomic<bool> *stop, std::unordered_map<std::string,bool> *memap) {
 
-                    std::cout << "time,queuesize,total,valid,unique" << std::endl;
+                    std::cout << "time elapsed,queuesize,calcsize" << std::endl;
                     auto start_time = std::time(nullptr);
                     while (!(stop->load(std::memory_order_acquire))) {
                         std::this_thread::sleep_for(std::chrono::seconds(10));
 
-
-                        std::cout << std::time(nullptr) - start_time << "," << q->size_approx();
+                        std::cout << std::time(nullptr) - start_time << "," << q->size_approx() << "," << memap->size() << std::endl;
                     }
-                }, &q, &stopMonitar);
+                }, &q, &stopMonitar, &email);
 
         // Wait for all threads
         for (size_t i = 0; i != n_threads; ++i) {
