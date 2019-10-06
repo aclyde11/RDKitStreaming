@@ -6,7 +6,7 @@ project(RDKitSV)
 
 set(CMAKE_CXX_FLAGS "-Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
-#set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 set(Boost_NO_SYSTEM_PATHS ON)
 #set(BOOST_ROOT:PATHNAME /usr/local/Cellar/boost/1.71.0/)
