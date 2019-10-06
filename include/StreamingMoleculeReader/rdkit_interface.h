@@ -25,6 +25,7 @@ namespace SMR {
         if (mol1 != nullptr) {
             auto tmp = RDKit::MolToSmiles(*mol1);
             delete mol1;
+            mol1 = nullptr;
             return tmp;
         } else {
             return {};
