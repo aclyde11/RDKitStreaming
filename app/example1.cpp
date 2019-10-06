@@ -17,7 +17,7 @@
 #include <StreamingMoleculeReader/parallelDatabase.h>
 
 
-using parallel_smile_set = phmap::parallel_flat_hash_set<std::string, std::hash<std::string>, std::equal_to<std::string>, std::allocator<std::string>, 6, std::mutex>;
+using parallel_smile_set = phmap::parallel_flat_hash_set<std::string, std::hash<std::string>, std::equal_to<std::string>, std::allocator<std::string>, 8, std::mutex>;
 using namespace SMR;
 
 // for ceralizing
@@ -56,11 +56,15 @@ void monitarThread(std::vector<MutexCounter> * valid_counters,
     }
 }
 
-
+// number threads, load, file_saved, file_read
 int main(int argc, char **argv) {
-    bool LOAD = (bool)(atoi(argv[1]));
-    size_t n_threads = 10;
-    // read in smiles from worker queue
+    if (argc < 4) {
+        std::cout << "check your args. Exiting." << std::endl;
+        return 1;
+    }
+
+    bool LOAD = (bool)(atoi(argv[2]));
+    size_t n_threads = (size_t)(atoi(argv[1]));
 
     // parallel test.
     moodycamel::ConcurrentQueue<std::string> q;
@@ -76,17 +80,22 @@ int main(int argc, char **argv) {
     parallel_smile_set dbase;
 
     if (LOAD) {
-        initial_set = getInitialSetFromFile("/Users/austin/train.txt");
+        if (argc < 5) {
+            std::cout << "check your args. Exiting." << std::endl;
+            return 1;
+        }
+
+        initial_set = getInitialSetFromFile(argv[4], n_threads, 1000000000);
         using Writer = nop::StreamWriter<std::ofstream>;
-        nop::Serializer<Writer> serializer{argv[2]};
+        nop::Serializer<Writer> serializer{argv[3]};
         serializer.Write(initial_set) || Die();
         serializer.writer().stream().close();
-        std::cout << "wrote out to file " << argv[2] << std::endl;
+        std::cout << "wrote out to file " << argv[3] << std::endl;
         return 0;
     } else {
         using Reader = nop::StreamReader<std::ifstream>;
-        std::cout << "reading in " << argv[2] << " as initial databse of SMILES." << std::endl;
-        nop::Deserializer<Reader> deserializer{argv[2]};
+        std::cout << "reading in " << argv[3] << " as initial databse of SMILES." << std::endl;
+        nop::Deserializer<Reader> deserializer{argv[3]};
         deserializer.Read(&initial_set) || Die();
         std::cout << initial_set.size() << std::endl;
     }
