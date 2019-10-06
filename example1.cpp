@@ -96,7 +96,7 @@ void monitarThread(MutexCounter *valid_counters,
             unique += unique_counters[i].view();
         }
 
-        std::cout << std::time(nullptr) << q->size_approx() << "," << total << "," << valid << "," << unique << std::endl;
+        std::cout << std::time(nullptr) << "," << q->size_approx() << "," << total << "," << valid << "," << unique << std::endl;
     }
 }
 
