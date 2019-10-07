@@ -124,10 +124,8 @@ int main(int argc, char **argv) {
     for (std::pair<std::string, bool>  element : big_initial_set)
     {
         dbase_enamine.insert(element.first);
-        couttester++;
-        if (couttester % 1000000 == 0) {
-            std::cout << "si" << std::endl;
-        }
+
+
     }
     std::unordered_map<std::string, bool>().swap(big_initial_set);
 
