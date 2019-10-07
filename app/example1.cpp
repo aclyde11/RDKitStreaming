@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
     }
 
     std::cout << "Starting Producer" << std::endl;
-    //Producer Thread
+    //Producer Threadd
     std::atomic<bool> doneProducer(true);
     threads.emplace_back([&](std::atomic<bool> *stop) {
         for (std::string line; std::getline(std::cin, line);) {
@@ -164,23 +164,23 @@ int main(int argc, char **argv) {
         std::cout << "Done with small from moses." << std::endl;
     }
 
-    {
-        using Reader = nop::StreamReader<std::ifstream>;
-        std::cout << "reading in " << argv[4] << " as ENAMINE databse of SMILES." << std::endl;
-        nop::Deserializer<Reader> deserializer{argv[4]};
-        big_initial_set.reserve(1000000);
-        deserializer.Read(&big_initial_set) || Die();
-        std::cout << initial_set.size() << std::endl;
-
-        //convert STL to phmap
-        for (std::pair<std::string, bool>  element : big_initial_set)
-        {
-            dbase_enamine.insert(element.first);
-        }
-        myStdMap().swap(big_initial_set);
-
-        std::cout << "Done with enamine set." << std::endl;
-    }
+//    {
+//        using Reader = nop::StreamReader<std::ifstream>;
+//        std::cout << "reading in " << argv[4] << " as ENAMINE databse of SMILES." << std::endl;
+//        nop::Deserializer<Reader> deserializer{argv[4]};
+//        big_initial_set.reserve(1000000);
+//        deserializer.Read(&big_initial_set) || Die();
+//        std::cout << initial_set.size() << std::endl;
+//
+//        //convert STL to phmap
+//        for (std::pair<std::string, bool>  element : big_initial_set)
+//        {
+//            dbase_enamine.insert(element.first);
+//        }
+//        myStdMap().swap(big_initial_set);
+//
+//        std::cout << "Done with enamine set." << std::endl;
+//    }
 
     std::cout << "new dbase has initial size " << dbase.size() << " Moving on to your problem." <<std::endl;
     std::cout << "new dbase_enaine has initial size " << dbase.size() << " Moving on to your problem." <<std::endl;
