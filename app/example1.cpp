@@ -17,7 +17,7 @@
 #include <StreamingMoleculeReader/parallelDatabase.h>
 
 
-using parallel_smile_set = phmap::parallel_flat_hash_set<std::string, std::hash<std::string>, std::equal_to<std::string>, std::allocator<std::string>, 8>;
+using parallel_smile_set = phmap::parallel_flat_hash_set<std::string, SMR::CityHasher, std::equal_to<std::string>, std::allocator<std::string>, 8>;
 using namespace SMR;
 
 // for ceralizing
@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
     std::vector<MutexCounter> unique_counters(n_threads);
     std::vector<MutexCounter> enamine_unique_counters(n_threads);
 
-    std::unordered_map<std::string, bool> initial_set, big_initial_set;
+    myStdMap initial_set, big_initial_set;
     parallel_smile_set dbase, dbase_enamine;
 
     if (LOAD) {
@@ -101,48 +101,9 @@ int main(int argc, char **argv) {
         serializer.writer().stream().close();
         std::cout << "wrote out to file " << argv[3] << std::endl;
         return 0;
-    } else {
-        using Reader = nop::StreamReader<std::ifstream>;
-        std::cout << "reading in " << argv[3] << " as initial databse of SMILES." << std::endl;
-        nop::Deserializer<Reader> deserializer{argv[3]};
-        deserializer.Read(&initial_set) || Die();
-        std::cout << initial_set.size() << std::endl;
     }
 
-     {
-        using Reader = nop::StreamReader<std::ifstream>;
-        std::cout << "reading in " << argv[4] << " as ENAMINE databse of SMILES." << std::endl;
-        nop::Deserializer<Reader> deserializer{argv[4]};
-        big_initial_set.reserve(1000000);
-        deserializer.Read(&big_initial_set) || Die();
-        std::cout << initial_set.size() << std::endl;
-    }
-
-    dbase_enamine.reserve(big_initial_set.size());
-    int couttester=0;
-    //convert STL to phmap
-    for (std::pair<std::string, bool>  element : big_initial_set)
-    {
-        dbase_enamine.insert(element.first);
-
-
-    }
-    std::unordered_map<std::string, bool>().swap(big_initial_set);
-
-    std::cout << "loadded huge map into struct." << std::endl;
-
-    //convert STL to phmap
-    for (std::pair<std::string, bool>  element : initial_set)
-    {
-        dbase.insert(element.first);
-    }
-
-    std::cout << "Cleaning..." << std::endl;
-    initial_set.clear();
-
-    std::cout << "new dbase has initial size " << dbase.size() << " Moving on to your problem." <<std::endl;
-    std::cout << "new dbase_enaine has initial size " << dbase.size() << " Moving on to your problem." <<std::endl;
-
+    std::cout << "Starting Producer" << std::endl;
     //Producer Thread
     std::atomic<bool> doneProducer(true);
     threads.emplace_back([&](std::atomic<bool> *stop) {
@@ -152,8 +113,8 @@ int main(int argc, char **argv) {
         *stop = false;
     }, &doneProducer);
 
-
     //Monitar Thread
+    std::cout << "Starting monitar thread." << std::endl;
     std::atomic<bool> stopMonitar(false);
     std::thread monitar(
             [&](std::vector<MutexCounter> * valid_counters,
@@ -166,7 +127,67 @@ int main(int argc, char **argv) {
             }, &valid_counters, &unique_counters, &total_counters, &enamine_unique_counters, &stopMonitar);
 
 
+    // Consumers
+    std::cout << "Starting RDKIT workers " << std::endl;
+    for (size_t i = 1; i != n_threads; ++i) {
+        threads.emplace_back(
+                [&](MutexCounter *total_counter, MutexCounter *valid_counter,
+                    std::atomic<bool> *stop) {
+                    std::string item;
+                    boost::optional<std::string> value;
+                    bool itemsLeft;
+                    do {
+                        // It's important to fence (if the producers have finished) *before* dequeueing
+                        itemsLeft = stop->load(std::memory_order_acquire);
+                        while (q.try_dequeue(item)) {
+                            itemsLeft = true;
+                            task(item, total_counter, valid_counter, &q_out);
+                        }
+                    } while (itemsLeft || doneConsumers.fetch_add(1, std::memory_order_acq_rel) + 1 == (n_threads - 1));
+                }, &total_counters[i],
+                &valid_counters[i],
+                &doneProducer);
+    }
+
+    {
+        using Reader = nop::StreamReader<std::ifstream>;
+        std::cout << "reading in " << argv[3] << " as initial databse of SMILES." << std::endl;
+        nop::Deserializer<Reader> deserializer{argv[3]};
+        deserializer.Read(&initial_set) || Die();
+        std::cout << initial_set.size() << std::endl;
+
+        //convert STL to phmap
+        for (std::pair<std::string, bool> element : initial_set) {
+            dbase.insert(element.first);
+        }
+        myStdMap().swap(initial_set);
+        std::cout << "Done with small from moses." << std::endl;
+    }
+
+    {
+        using Reader = nop::StreamReader<std::ifstream>;
+        std::cout << "reading in " << argv[4] << " as ENAMINE databse of SMILES." << std::endl;
+        nop::Deserializer<Reader> deserializer{argv[4]};
+        big_initial_set.reserve(1000000);
+        deserializer.Read(&big_initial_set) || Die();
+        std::cout << initial_set.size() << std::endl;
+
+        //convert STL to phmap
+        for (std::pair<std::string, bool>  element : big_initial_set)
+        {
+            dbase_enamine.insert(element.first);
+        }
+        myStdMap().swap(big_initial_set);
+
+        std::cout << "Done with enamine set." << std::endl;
+    }
+
+    std::cout << "new dbase has initial size " << dbase.size() << " Moving on to your problem." <<std::endl;
+    std::cout << "new dbase_enaine has initial size " << dbase.size() << " Moving on to your problem." <<std::endl;
+
+
     //Writer Thread
+    std::cout << "Starting writer thread now." << std::endl;
     std::atomic<bool> stopWriter(false);
     std::thread writer(
             [&]( std::atomic<bool> *stop, parallel_smile_set *meset, parallel_smile_set *enamine) {
@@ -181,26 +202,6 @@ int main(int argc, char **argv) {
                 }
             }, &stopWriter, &dbase, &dbase_enamine);
 
-    // Consumers
-    for (size_t i = 1; i != n_threads; ++i) {
-        threads.emplace_back(
-                [&](MutexCounter *total_counter, MutexCounter *valid_counter,
-                        std::atomic<bool> *stop) {
-                    std::string item;
-                    boost::optional<std::string> value;
-                    bool itemsLeft;
-                    do {
-                        // It's important to fence (if the producers have finished) *before* dequeueing
-                        itemsLeft = stop->load(std::memory_order_acquire);
-                        while (q.try_dequeue(item)) {
-                            itemsLeft = true;
-                            task(item, total_counter, valid_counter, &q_out);
-                        }
-                    } while (itemsLeft || doneConsumers.fetch_add(1, std::memory_order_acq_rel) + 1 == (n_threads - 1));
-                }, &total_counters[i],
-                   &valid_counters[i],
-                   &doneProducer);
-    }
 
     // Wait for all threads
     for (size_t i = 0; i != n_threads; ++i) {

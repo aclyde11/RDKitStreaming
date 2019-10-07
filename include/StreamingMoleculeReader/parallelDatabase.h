@@ -14,7 +14,7 @@
 #include <unordered_map>
 #include <boost/optional.hpp>
 #include <concurrentqueue/concurrentqueue.h>
-
+#include <city.h>
 
 namespace SMR {
 
@@ -40,12 +40,20 @@ namespace SMR {
         }
     };
 
+    struct CityHasher {
+        std::size_t operator()(const std::string& k) const {
+            return CityHash64(k.data(), k.size());
+        }
+    };
+
+    using myStdMap = std::unordered_map<std::string, bool, CityHasher>;
+
     /**
      * Generic WorkQueue Function
      */
-    std::unordered_map<std::string, bool> getInitialSetFromFile( size_t n_threads = 4,
+    myStdMap getInitialSetFromFile( size_t n_threads = 4,
                                                                 size_t init_size = 2000000) {
-        std::unordered_map<std::string, bool> email{init_size};
+        myStdMap email{init_size};
         std::mutex lock;
 
         moodycamel::ConcurrentQueue<std::string> q;
@@ -70,7 +78,7 @@ namespace SMR {
 
         for (size_t i = 1; i < n_threads; ++i) {
             threads.emplace_back(
-                    [&](std::atomic<bool> *stop, std::unordered_map<std::string, bool> *meset, std::mutex *lock) {
+                    [&](std::atomic<bool> *stop, myStdMap *meset, std::mutex *lock) {
                         bool itemsLeft;
                         do {
                             itemsLeft = stop->load(std::memory_order_acquire);
@@ -105,7 +113,7 @@ namespace SMR {
         //Writer Thread
         std::atomic<bool> stopWriter(false);
         std::thread writer(
-                [&]( std::atomic<bool> *stop, std::unordered_map<std::string, bool> *meset) {
+                [&]( std::atomic<bool> *stop, myStdMap *meset) {
 
                     std::cout << "time,queuesize,total,valid,unique" << std::endl;
                     while (!(stop->load(std::memory_order_acquire))) {
@@ -146,9 +154,9 @@ namespace SMR {
     /**
      * Generic WorkQueue Function
      */
-    std::unordered_map<std::string, bool> getInitialSetFromFile(std::string const &filename, size_t n_threads = 4,
+    myStdMap getInitialSetFromFile(std::string const &filename, size_t n_threads = 4,
                                                                 size_t init_size = 2000000) {
-        std::unordered_map<std::string, bool> email{init_size};
+        myStdMap email{init_size};
         std::mutex lock;
 
         moodycamel::ConcurrentQueue<std::string> q;
@@ -174,7 +182,7 @@ namespace SMR {
 
         for (size_t i = 1; i < n_threads; ++i) {
             threads.emplace_back(
-                    [&](std::atomic<bool> *stop, std::unordered_map<std::string, bool> *meset, std::mutex *lock) {
+                    [&](std::atomic<bool> *stop, myStdMap *meset, std::mutex *lock) {
                         bool itemsLeft;
                         do {
                             itemsLeft = stop->load(std::memory_order_acquire);
@@ -209,7 +217,7 @@ namespace SMR {
         //Writer Thread
         std::atomic<bool> stopWriter(false);
         std::thread writer(
-                [&]( std::atomic<bool> *stop, std::unordered_map<std::string, bool> *meset) {
+                [&]( std::atomic<bool> *stop, myStdMap *meset) {
 
                     std::cout << "time,queuesize,total,valid,unique" << std::endl;
                     while (!(stop->load(std::memory_order_acquire))) {

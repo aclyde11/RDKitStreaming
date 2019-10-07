@@ -51,6 +51,10 @@ target_include_directories(StreamingMolecularReader INTERFACE
         $<INSTALL_INTERFACE:include/StreamingMolecularReader>
         )
 
+find_package(cityhash)
+include_directories(${CITYHASH_INCLUDE_DIR})
+
+
 include_directories("${CMAKE_SOURCE_DIR}/include/")
 
 add_executable(example1 example1.cpp)
@@ -58,3 +62,4 @@ target_link_libraries(example1 nop)
 target_link_libraries(example1 parallel_hashmap)
 target_link_libraries(example1 concurrentqueue)
 target_link_libraries(example1 ${LIBS} )
+target_link_libraries(example1 ${CITYHASH_LIBRARIES})
