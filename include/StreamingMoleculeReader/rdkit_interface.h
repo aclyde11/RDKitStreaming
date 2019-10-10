@@ -109,7 +109,6 @@ namespace SMR {
                     min_sim = ans;
                 }
             }
-
             return max_sim;
         }
     };
