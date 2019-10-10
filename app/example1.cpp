@@ -5,7 +5,7 @@
 #include <string>
 #include <chrono>
 #include <ctime>
-
+#include <random.h>
 #include <parallel_hashmap/phmap.h>
 
 #include <nop/serializer.h>
@@ -28,14 +28,19 @@ namespace {
 using InQueue = moodycamel::ConcurrentQueue<std::string>;
 using QOutT = std::pair<std::string, float>;
 using OutQueue = moodycamel::ConcurrentQueue<QOutT>;
-using MinMaxSizeFillT = SMR::FastMinMax<100000>;
+using MinMaxSizeFillT = SMR::FastMinMax<1000000>;
 
 void task(std::string const& item, MutexCounter *total_counter, MutexCounter *valid_counter, OutQueue *qout, MinMaxSizeFillT *sm) {
     std::pair<boost::optional<std::string>, ExplicitBitVect*> value = getCannonicalSmileFromSmileFP(item);
     total_counter->increment();
     if (std::get<0>(value).has_value()) {
         valid_counter->increment();
-        qout->enqueue(std::make_pair(std::get<0>(value).value(), (*sm)(std::get<1>(value))));
+
+        flota ret = -1;
+        if ((static_cast <float> (rand()) / static_cast <float> (RAND_MAX)) < 0.02) {
+            ret = (*sm)(std::get<1>(value)
+        }
+        qout->enqueue(std::make_pair(std::get<0>(value).value(), ret))));
     }
 }
 
@@ -210,7 +215,8 @@ int main(int argc, char **argv) {
                     while (q_out.try_dequeue(item)) {
                         if (std::get<1>(meset->insert(std::get<0>(item)))) {
                             unique_counters[0].increment();
-                            myfile2 << std::get<1>(item) << std::endl;
+                            if (std::get<1>(item) != -1)
+                                myfile2 << std::get<1>(item) << std::endl;
                         }
                     }
                 }
