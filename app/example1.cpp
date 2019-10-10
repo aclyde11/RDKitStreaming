@@ -35,9 +35,9 @@ void task(std::string const& item, MutexCounter *total_counter, MutexCounter *va
     if (std::get<0>(value).has_value()) {
         valid_counter->increment();
 
-        flota ret = -1;
+        flot ret = -1;
         if ((static_cast <float> (rand()) / static_cast <float> (RAND_MAX)) < 0.02) {
-            ret = (*sm)(std::get<1>(value)
+            ret = (*sm)(std::get<1>(value);
         }
         qout->enqueue(std::make_pair(std::get<0>(value).value(), ret))));
     }
