@@ -86,6 +86,9 @@ namespace SMR {
         FastMinMax(std::vector<std::string> const& smis_to_add) : pointers{nullptr} {
             int i = 0;
             for(auto const& s : smis_to_add) {
+                if (i >= dset_size) {
+                    break;
+                }
                 auto fp = getFingerPrint(s);
                 pointers[i] = fp;
                 i++;
