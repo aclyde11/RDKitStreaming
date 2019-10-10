@@ -28,8 +28,9 @@ namespace {
 using InQueue = moodycamel::ConcurrentQueue<std::string>;
 using QOutT = std::pair<std::string, float>;
 using OutQueue = moodycamel::ConcurrentQueue<QOutT>;
+using MinMaxSizeFillT = SMR::FastMinMax<100000>;
 
-void task(std::string const& item, MutexCounter *total_counter, MutexCounter *valid_counter, OutQueue *qout, SMR::FastMinMax<108> *sm) {
+void task(std::string const& item, MutexCounter *total_counter, MutexCounter *valid_counter, OutQueue *qout, MinMaxSizeFillT *sm) {
     std::pair<boost::optional<std::string>, ExplicitBitVect*> value = getCannonicalSmileFromSmileFP(item);
     total_counter->increment();
     if (std::get<0>(value).has_value()) {
@@ -148,7 +149,7 @@ int main(int argc, char **argv) {
         myStdMap().swap(initial_set);
         std::cout << "Done with small from moses." << std::endl;
     }
-    SMR::FastMinMax<100000> simmaker{sim};
+    MinMaxSizeFillT simmaker{sim};
 
     // Consumers
     std::cout << "Starting RDKIT workers " << std::endl;
