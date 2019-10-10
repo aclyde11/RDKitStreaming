@@ -206,12 +206,14 @@ int main(int argc, char **argv) {
                 while (!(stop->load(std::memory_order_acquire))) {
                     std::pair<std::string, float> item;
                     while (q_out.try_dequeue(item)) {
-                        if (std::get<1>(meset->insert(std::get<0>(item))))
+                        if (std::get<1>(meset->insert(std::get<0>(item)))) {
                             unique_counters[0].increment();
+                            myfile << std::get<1>(item) << std::endl;
+                        }
+
                         if (std::get<1>(enamine->insert(std::get<0>(item))))
                             enamine_unique_counters[0].increment();
 
-                        myfile << std::get<1>(item) << std::endl;
                     }
                 }
                 myfile.close();
