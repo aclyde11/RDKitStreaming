@@ -25,12 +25,16 @@ namespace {
     auto Die() { return nop::Die(std::cerr); }
 }
 
-void task(std::string const& item, MutexCounter *total_counter, MutexCounter *valid_counter, moodycamel::ConcurrentQueue<std::string> *qout) {
-    boost::optional<std::string> value = getCannonicalSmileFromSmile(item);
+using InQueue = moodycamel::ConcurrentQueue<std::string>;
+using QOutT = std::pair<std::string, float>;
+using OutQueue = moodycamel::ConcurrentQueue<QOutT>;
+
+void task(std::string const& item, MutexCounter *total_counter, MutexCounter *valid_counter, OutQueue *qout, SMR::FastMinMax<108> *sm) {
+    std::pair<boost::optional<std::string>, ExplicitBitVect*> value = getCannonicalSmileFromSmileFP(item);
     total_counter->increment();
-    if (value.has_value()) {
+    if (std::get<0>(value).has_value()) {
         valid_counter->increment();
-        qout->enqueue(value.value());
+        qout->enqueue(std::make_pair(std::get<0>(value).value(), (*sm)(std::get<1>(value))));
     }
 }
 
@@ -38,7 +42,7 @@ void monitarThread(std::vector<MutexCounter> * valid_counters,
                    std::vector<MutexCounter> * unique_counters,
                    std::vector<MutexCounter> * total_counters,
                    std::vector<MutexCounter> * enamine_counter,
-                   int monitar_freq, std::atomic<bool> *stop, moodycamel::ConcurrentQueue<std::string> *q, moodycamel::ConcurrentQueue<std::string> *q_out) {
+                   int monitar_freq, std::atomic<bool> *stop, InQueue *q, OutQueue *q_out) {
 
     std::cout <<"time,queuesize,writersize,total,valid,unique,uniqueenamine"<<std::endl;
     while(!(stop->load(std::memory_order_acquire))) {
@@ -70,8 +74,8 @@ int main(int argc, char **argv) {
     size_t n_threads = (size_t)(atoi(argv[1]));
 
     // parallel test.
-    moodycamel::ConcurrentQueue<std::string> q;
-    moodycamel::ConcurrentQueue<std::string> q_out;
+    InQueue q;
+    OutQueue q_out;
 
     std::vector<std::thread> threads;
 
@@ -127,6 +131,25 @@ int main(int argc, char **argv) {
             }, &valid_counters, &unique_counters, &total_counters, &enamine_unique_counters, &stopMonitar);
 
 
+
+    std::vector<std::string> sim;
+    {
+        using Reader = nop::StreamReader<std::ifstream>;
+        std::cout << "reading in " << argv[3] << " as initial databse of SMILES." << std::endl;
+        nop::Deserializer<Reader> deserializer{argv[3]};
+        deserializer.Read(&initial_set) || Die();
+        std::cout << initial_set.size() << std::endl;
+
+        //convert STL to phmap
+        for (std::pair<std::string, bool> element : initial_set) {
+            dbase.insert(element.first);
+            sim.push_back(element.first);
+        }
+        myStdMap().swap(initial_set);
+        std::cout << "Done with small from moses." << std::endl;
+    }
+    SMR::FastMinMax<108> simmaker{sim};
+
     // Consumers
     std::cout << "Starting RDKIT workers " << std::endl;
     for (size_t i = 1; i != n_threads; ++i) {
@@ -141,7 +164,7 @@ int main(int argc, char **argv) {
                         itemsLeft = stop->load(std::memory_order_acquire);
                         while (q.try_dequeue(item)) {
                             itemsLeft = true;
-                            task(item, total_counter, valid_counter, &q_out);
+                            task(item, total_counter, valid_counter, &q_out, &simmaker);
                         }
                     } while (itemsLeft || doneConsumers.fetch_add(1, std::memory_order_acq_rel) + 1 == (n_threads - 1));
                 }, &total_counters[i],
@@ -149,20 +172,6 @@ int main(int argc, char **argv) {
                 &doneProducer);
     }
 
-    {
-        using Reader = nop::StreamReader<std::ifstream>;
-        std::cout << "reading in " << argv[3] << " as initial databse of SMILES." << std::endl;
-        nop::Deserializer<Reader> deserializer{argv[3]};
-        deserializer.Read(&initial_set) || Die();
-        std::cout << initial_set.size() << std::endl;
-
-        //convert STL to phmap
-        for (std::pair<std::string, bool> element : initial_set) {
-            dbase.insert(element.first);
-        }
-        myStdMap().swap(initial_set);
-        std::cout << "Done with small from moses." << std::endl;
-    }
 
 //    {
 //        using Reader = nop::StreamReader<std::ifstream>;
@@ -191,15 +200,22 @@ int main(int argc, char **argv) {
     std::atomic<bool> stopWriter(false);
     std::thread writer(
             [&]( std::atomic<bool> *stop, parallel_smile_set *meset, parallel_smile_set *enamine) {
+
+                std::ofstream myfile;
+                myfile.open("out_sim.txt");
                 while (!(stop->load(std::memory_order_acquire))) {
-                    std::string item;
+                    std::pair<std::string, float> item;
                     while (q_out.try_dequeue(item)) {
-                        if (std::get<1>(meset->insert(item)))
+                        if (std::get<1>(meset->insert(std::get<0>(item))))
                             unique_counters[0].increment();
-                        if (std::get<1>(enamine->insert(item)))
+                        if (std::get<1>(enamine->insert(std::get<0>(item))))
                             enamine_unique_counters[0].increment();
+
+                        myfile << std::get<1>(item) << std::endl;
                     }
                 }
+                myfile.close();
+
             }, &stopWriter, &dbase, &dbase_enamine);
 
 
@@ -217,16 +233,17 @@ int main(int argc, char **argv) {
     writer.join();
 
     // Collect any leftovers (could be some if e.g. consumers finish before producers)
-    std::string item;
-    boost::optional<std::string> value;
-    while (q.try_dequeue(item)) {
-        task(item, &total_counters[0], &valid_counters[0], &q_out);
+    std::string tmp;
+    while (q.try_dequeue(tmp)) {
+        task(tmp, &total_counters[0], &valid_counters[0], &q_out, &simmaker);
     }
 
+    QOutT item;
+
     while (q_out.try_dequeue(item)) {
-        if (std::get<1>(dbase.insert(item)))
+        if (std::get<1>(dbase.insert(std::get<0>(item))))
             unique_counters[0].increment();
-        if (std::get<1>(dbase_enamine.insert(item)))
+        if (std::get<1>(dbase_enamine.insert(std::get<0>(item))))
             enamine_unique_counters[0].increment();
     }
 

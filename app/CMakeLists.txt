@@ -13,10 +13,8 @@ set(Boost_USE_STATIC_RUNTIME ON)
 find_package( Boost COMPONENTS iostreams filesystem system)
 
 
-find_package( MyRDKit COMPONENTS ChemReactions FileParsers Fingerprints SmilesParse Depictor RDGeometryLib
-        RDGeneral SubstructMatch Subgraphs MolDraw2D GraphMol DistGeometry DistGeomHelpers
-        MolAlign Optimizer ForceField ForceFieldHelpers Alignment
-        ForceField  MolTransforms EigenSolvers)
+find_package( MyRDKit COMPONENTS DataStructs Fingerprints SmilesParse Depictor
+        RDGeneral GraphMol )
 
 
 find_package (Threads)
