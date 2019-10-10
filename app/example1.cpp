@@ -95,24 +95,19 @@ int main(int argc, char **argv) {
     parallel_smile_set dbase, dbase_enamine;
 
     if (LOAD) {
-        std::cout << "Starting here." << std::endl;
         if (argc == 5) {
-            std::cout << "Reading from file." << std::endl;
             initial_set = getInitialSetFromFile(argv[4], n_threads, 1000000000);
         } else {
             initial_set = getInitialSetFromFile(n_threads, 1000000000);
         }
 
-        std::cout << "Got set." << std::endl;
         using Writer = nop::StreamWriter<std::ofstream>;
         nop::Serializer<Writer> serializer{argv[3]};
         serializer.Write(initial_set) || Die();
         serializer.writer().stream().close();
-        std::cout << "wrote out to file " << argv[3] << std::endl;
         return 0;
     }
 
-    std::cout << "Starting Producer" << std::endl;
     //Producer Threadd
     std::atomic<bool> doneProducer(true);
     threads.emplace_back([&](std::atomic<bool> *stop) {
@@ -123,7 +118,6 @@ int main(int argc, char **argv) {
     }, &doneProducer);
 
     //Monitar Thread
-    std::cout << "Starting monitar thread." << std::endl;
     std::atomic<bool> stopMonitar(false);
     std::thread monitar(
             [&](std::vector<MutexCounter> * valid_counters,
@@ -140,7 +134,6 @@ int main(int argc, char **argv) {
     std::vector<std::string> sim;
     {
         using Reader = nop::StreamReader<std::ifstream>;
-        std::cout << "reading in " << argv[3] << " as initial databse of SMILES." << std::endl;
         nop::Deserializer<Reader> deserializer{argv[3]};
         deserializer.Read(&initial_set) || Die();
         std::cout << initial_set.size() << std::endl;
@@ -151,12 +144,10 @@ int main(int argc, char **argv) {
             sim.push_back(element.first);
         }
         myStdMap().swap(initial_set);
-        std::cout << "Done with small from moses." << std::endl;
     }
     MinMaxSizeFillT simmaker{sim};
 
     // Consumers
-    std::cout << "Starting RDKIT workers " << std::endl;
     for (size_t i = 1; i != n_threads; ++i) {
         threads.emplace_back(
                 [&](MutexCounter *total_counter, MutexCounter *valid_counter,
@@ -196,12 +187,9 @@ int main(int argc, char **argv) {
 //        std::cout << "Done with enamine set." << std::endl;
 //    }
 
-    std::cout << "new dbase has initial size " << dbase.size() << " Moving on to your problem." <<std::endl;
-    std::cout << "new dbase_enaine has initial size " << dbase.size() << " Moving on to your problem." <<std::endl;
 
 
     //Writer Thread
-    std::cout << "Starting writer thread now." << std::endl;
     std::atomic<bool> stopWriter(false);
     std::thread writer(
             [&]( std::atomic<bool> *stop, parallel_smile_set *meset, parallel_smile_set *enamine) {
@@ -229,11 +217,9 @@ int main(int argc, char **argv) {
         threads[i].join();
     }
 
-    std::cout << "ok everyone else finsihed. Waiting for monitar" << std::endl;
     stopMonitar = true;
     monitar.join();
 
-    std::cout << "ok everyone else finsihed. Waiting for Writer" << std::endl;
     stopWriter = true;
     writer.join();
 
@@ -263,9 +249,5 @@ int main(int argc, char **argv) {
         enamine += enamine_unique_counters[i].view();
     }
 
-    std::cout << "total,unique,valid,emiane" << std::endl;
-    std::cout << total << ", " << unique << ", " << valid << "," << enamine << std::endl;
-    std::cout << dbase.size() << std::endl;
-    std::cout << dbase_enamine.size() << std::endl;
 
 }

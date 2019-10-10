@@ -129,11 +129,9 @@ namespace SMR {
             threads[i].join();
         }
 
-        std::cout << "ok everyone else finsihed. Waiting for monitar" << std::endl;
         stopMonitar = true;
         monitar.join();
 
-        std::cout << "ok everyone else finsihed. Waiting for writer." << std::endl;
         stopWriter = true;
         writer.join();
 
@@ -233,11 +231,9 @@ namespace SMR {
             threads[i].join();
         }
 
-        std::cout << "ok everyone else finsihed. Waiting for monitar" << std::endl;
         stopMonitar = true;
         monitar.join();
 
-        std::cout << "ok everyone else finsihed. Waiting for writer." << std::endl;
         stopWriter = true;
         writer.join();
 
