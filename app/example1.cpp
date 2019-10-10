@@ -29,7 +29,7 @@ using QOutT = std::pair<std::string, float>;
 using OutQueue = moodycamel::ConcurrentQueue<QOutT>;
 using MinMaxSizeFillT = SMR::FastMinMax<1000000>;
 
-void task(std::string const& item, MutexCounter *total_counter, MutexCounter *valid_counter, OutQueue *qout, MinMaxSizeFillT *sm) {
+inline void task(std::string const& item, MutexCounter *total_counter, MutexCounter *valid_counter, OutQueue *qout, MinMaxSizeFillT *sm) {
     std::pair<boost::optional<std::string>, ExplicitBitVect*> value = getCannonicalSmileFromSmileFP(item);
     total_counter->increment();
     if (std::get<0>(value).has_value()) {
@@ -43,7 +43,7 @@ void task(std::string const& item, MutexCounter *total_counter, MutexCounter *va
     }
 }
 
-void monitarThread(std::vector<MutexCounter> * valid_counters,
+inline void monitarThread(std::vector<MutexCounter> * valid_counters,
                    std::vector<MutexCounter> * unique_counters,
                    std::vector<MutexCounter> * total_counters,
                    std::vector<MutexCounter> * enamine_counter,
