@@ -148,7 +148,7 @@ int main(int argc, char **argv) {
         myStdMap().swap(initial_set);
         std::cout << "Done with small from moses." << std::endl;
     }
-    SMR::FastMinMax<108> simmaker{sim};
+    SMR::FastMinMax<100000> simmaker{sim};
 
     // Consumers
     std::cout << "Starting RDKIT workers " << std::endl;

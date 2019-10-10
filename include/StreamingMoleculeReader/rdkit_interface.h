@@ -95,18 +95,15 @@ namespace SMR {
             }
         }
 
-        float operator ()(ExplicitBitVect *mol)
+        inline float operator ()(ExplicitBitVect *mol)
         {
-            float min_sim = 0;
+//            float min_sim = 0;
             float max_sim = 0;
 
             for (int i = 0; i < dset_size; i++) {
                 float ans = tanimotoSim(*(pointers[i]), *mol);
                 if (ans > max_sim ) {
                     max_sim = ans;
-                }
-                if (ans < min_sim) {
-                    min_sim = ans;
                 }
             }
             return max_sim;
