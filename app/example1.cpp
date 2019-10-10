@@ -201,22 +201,26 @@ int main(int argc, char **argv) {
     std::thread writer(
             [&]( std::atomic<bool> *stop, parallel_smile_set *meset, parallel_smile_set *enamine) {
 
-                std::ofstream myfile;
+                std::ofstream myfile, myfile2;
                 myfile.open("out_sim.txt");
+                myfile2.open("out_sim_unique.txt");
+
                 while (!(stop->load(std::memory_order_acquire))) {
                     std::pair<std::string, float> item;
                     while (q_out.try_dequeue(item)) {
                         if (std::get<1>(meset->insert(std::get<0>(item)))) {
                             unique_counters[0].increment();
-                            myfile << std::get<1>(item) << std::endl;
+                            myfile2 << std::get<1>(item) << std::endl;
                         }
 
                         if (std::get<1>(enamine->insert(std::get<0>(item))))
                             enamine_unique_counters[0].increment();
+                        myfile << std::get<1>(item) << std::endl;
 
                     }
                 }
                 myfile.close();
+                myfile2.close();
 
             }, &stopWriter, &dbase, &dbase_enamine);
 
