@@ -48,7 +48,7 @@ namespace SMR {
             return nullptr;
         }
 
-        auto res = RDKit::MorganFingerprints::getFingerprintAsBitVect(*mol1, 6, 2);
+        auto res = RDKit::MorganFingerprints::getFingerprintAsBitVect(*mol1, 3, 1024);
         delete mol1;
         mol1 = nullptr;
         return res;
@@ -90,7 +90,7 @@ namespace SMR {
 
         if (mol1 != nullptr) {
             auto tmp = RDKit::MolToSmiles(*mol1);
-            auto res = RDKit::MorganFingerprints::getFingerprintAsBitVect(*mol1, 6, 2);
+            auto res = RDKit::MorganFingerprints::getFingerprintAsBitVect(*mol1, 3, 1024);
             delete mol1;
             mol1 = nullptr;
             return std::make_pair(tmp, res);
