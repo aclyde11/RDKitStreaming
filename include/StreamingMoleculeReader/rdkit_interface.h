@@ -130,7 +130,7 @@ namespace SMR {
 //            float min_sim = 0;
             float max_sim = 0;
             int bbits =  mol->getNumOnBits();
-            for (int i = 0; i < size; i++) {
+            for (int i = 0; i < size - 1; i++) {
                 float ans = tanimotoSim(*(pointers[i]), count[i], *mol, bbits);
                 if (ans > max_sim ) {
                     max_sim = ans;
