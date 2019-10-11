@@ -145,7 +145,9 @@ int main(int argc, char **argv) {
         }
         myStdMap().swap(initial_set);
     }
+    std::cerr << "gonna compute some fps" << std::endl;
     MinMaxSizeFillT simmaker{sim};
+    std::cerr << "made me stood maker" << std::endl;
 
     // Consumers
     for (size_t i = 1; i != n_threads; ++i) {
