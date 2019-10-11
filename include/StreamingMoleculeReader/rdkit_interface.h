@@ -98,7 +98,7 @@ namespace SMR {
         ExplicitBitVect  *pointers[dset_size];
         int count[dset_size];
 
-        FastMinMax(std::vector<std::string> const& smis_to_add) : pointers{nullptr} {
+        FastMinMax(std::vector<std::string> const& smis_to_add) : pointers{nullptr} , count{0} {
             int i = 0;
             for(auto const& s : smis_to_add) {
                 if (i >= dset_size) {
