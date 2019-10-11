@@ -104,6 +104,7 @@ namespace SMR {
                 if (i >= dset_size) {
                     break;
                 }
+                std::cerr <<i<< std::endl;
                 auto fp = getFingerPrint(s);
                 count[i] = fp->getNumOnBits();
                 pointers[i] = fp;
