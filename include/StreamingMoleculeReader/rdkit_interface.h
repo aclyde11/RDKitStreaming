@@ -110,9 +110,11 @@ namespace SMR {
                     count[i] = fp->getNumOnBits();
                     pointers[i] = fp;
                     i++;
+                } else {
+                    std::cerr << "one did noe work..." << std::endl;
                 }
             }
-            
+
             size = i;
         }
 
