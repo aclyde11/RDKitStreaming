@@ -17,8 +17,52 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 find_package( Boost COMPONENTS iostreams filesystem system)
 
 
-find_package( MyRDKit COMPONENTS DataStructs Fingerprints SmilesParse Depictor
-        RDGeneral GraphMol )
+find_package( MyRDKit COMPONENTS MolStandardize
+        MolDraw2D
+        ChemReactions
+        StructChecker
+        MolHash
+        RGroupDecomposition
+        Descriptors
+        FMCS
+        MMPA
+        FileParsers
+        Depictor
+        DistGeomHelpers
+        MolAlign
+        DistGeometry
+        ForceFieldHelpers
+        SubstructLibrary
+        ForceField
+        Fingerprints
+        FilterCatalog
+        MolChemicalFeatures
+        FragCatalog
+        ChemTransforms
+        ShapeHelpers
+        ReducedGraphs
+        Optimizer
+        PartialCharges
+        SmilesParse
+        Subgraphs
+        SubstructMatch
+        MolTransforms
+        SLNParse
+        Trajectory
+        MolInterchange
+        MolCatalog
+        GraphMol
+        ChemicalFeatures
+        Alignment
+        RDGeometryLib
+        InfoTheory
+        coordgen
+        DataStructs
+        Catalogs
+        SimDivPickers
+        EigenSolvers
+        maeparser
+        RDGeneral)
 
 
 find_package (Threads)
