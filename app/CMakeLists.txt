@@ -1,7 +1,7 @@
 
 
-set(Boost_NO_SYSTEM_PATHS ON)
-set(Boost_NO_BOOST_CMAKE TRUE)
+#set(Boost_NO_SYSTEM_PATHS ON)
+#set(Boost_NO_BOOST_CMAKE TRUE)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}")
 
@@ -11,9 +11,9 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
 
-set(Boost_USE_STATIC_LIBS ON)
-set(Boost_USE_MULTITHREADED OFF)
-set(Boost_USE_STATIC_RUNTIME ON)
+#set(Boost_USE_STATIC_LIBS ON)
+#set(Boost_USE_MULTITHREADED OFF)
+#set(Boost_USE_STATIC_RUNTIME ON)
 find_package( Boost COMPONENTS iostreams filesystem system)
 
 

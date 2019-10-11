@@ -22,7 +22,7 @@ set(RDKIT_FOUND "MyRDKit_FOUND")
 foreach(component ${MyRDKit_FIND_COMPONENTS})
     message( "Looking for RDKit component ${component}" )
     find_file( MyRDKit_LIBRARY_${component}
-            libRDKit${component}.dylib
+            libRDKit${component}.a
             PATH ${RDKIT_DIR}/lib NO_DEFAULT_PATH)
     message("MyRDKit_LIBRARY_${component} : ${MyRDKit_LIBRARY_${component}}")
     if(${MyRDKit_LIBRARY_${component}} MATCHES "-NOTFOUND$")
@@ -31,7 +31,7 @@ foreach(component ${MyRDKit_FIND_COMPONENTS})
         foreach(component ${MyRDKit_FIND_COMPONENTS})
             message( "Looking for RDKit component ${component}" )
             find_file( MyRDKit_LIBRARY_${component}
-                    libRDKit${component}.so
+                    libRDKit${component}.a
                     PATH ${RDKIT_DIR}/lib NO_DEFAULT_PATH)
             message("MyRDKit_LIBRARY_${component} : ${MyRDKit_LIBRARY_${component}}")
             if(${MyRDKit_LIBRARY_${component}} MATCHES "-NOTFOUND$")
