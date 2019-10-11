@@ -102,11 +102,10 @@ namespace SMR {
 
     template<int dset_size>
     struct FastMinMax {
-        ExplicitBitVect  *pointers[dset_size];
-        int count[dset_size];
+        std::vector<std::pair<ExplicitBitVect *, int>> pointers;
         int size;
 
-        explicit FastMinMax(std::vector<std::string> const& smis_to_add) : pointers{nullptr} , count{0} {
+        explicit FastMinMax(std::vector<std::string> const& smis_to_add)  {
             int i = 0;
             for(auto const& s : smis_to_add) {
                 if (i >= dset_size) {
@@ -114,12 +113,9 @@ namespace SMR {
                 }
                 auto fp = getFingerPrint(s);
                 if (fp != nullptr) {
-                    count[i] = fp->getNumOnBits();
-                    pointers[i] = fp;
-                    i++;
-                    std::cout << i << std::endl;
+                    pointers.push_back(std::make_pair(fp, fp->getNumOnBits()));
                 } else {
-                    std::cout << "one did noe work..." << std::endl;
+                    std::cerr << "one did noe work..." << std::endl;
                 }
             }
             std::cout << "Loaded all the fprints" << std::endl;
@@ -132,7 +128,7 @@ namespace SMR {
             float max_sim = 0;
             int bbits =  mol->getNumOnBits();
             for (int i = 0; i < size - 1; i++) {
-                float ans = tanimotoSim(*(pointers[i]), count[i], *mol, bbits);
+                float ans = tanimotoSim(*(std::get<0>(pointers[i])), std::get<1>(pointers[i]), *mol, bbits);
                 if (ans > max_sim ) {
                     max_sim = ans;
                 }
