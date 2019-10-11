@@ -41,7 +41,7 @@ namespace SMR {
     ExplicitBitVect *getFingerPrint(std::string const &smi) {
         RDKit::ROMol *mol1 = nullptr;
         mol1 = RDKit::SmilesToMol(smi);
-        auto res = RDKit::RDKFingerprintMol(*mol1, 1, 7, 768);
+        auto res = RDKit::RDKFingerprintMol(*mol1, 1, 7, 1024);
         delete mol1;
         mol1 = nullptr;
         return res;
@@ -83,7 +83,7 @@ namespace SMR {
 
         if (mol1 != nullptr) {
             auto tmp = RDKit::MolToSmiles(*mol1);
-            auto res = RDKit::RDKFingerprintMol(*mol1, 1, 7, 768);
+            auto res = RDKit::RDKFingerprintMol(*mol1, 1, 7, 1024);
             delete mol1;
             mol1 = nullptr;
             return std::make_pair(tmp, res);
