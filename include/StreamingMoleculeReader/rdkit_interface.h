@@ -97,6 +97,7 @@ namespace SMR {
     struct FastMinMax {
         ExplicitBitVect  *pointers[dset_size];
         int count[dset_size];
+        int size;
 
         FastMinMax(std::vector<std::string> const& smis_to_add) : pointers{nullptr} , count{0} {
             int i = 0;
@@ -104,12 +105,15 @@ namespace SMR {
                 if (i >= dset_size) {
                     break;
                 }
-                std::cerr <<i<< std::endl;
                 auto fp = getFingerPrint(s);
-                count[i] = fp->getNumOnBits();
-                pointers[i] = fp;
-                i++;
+                if (fp != nullptr) {
+                    count[i] = fp->getNumOnBits();
+                    pointers[i] = fp;
+                    i++;
+                }
             }
+            
+            size = i;
         }
 
         inline float operator ()(ExplicitBitVect *mol)
@@ -117,7 +121,7 @@ namespace SMR {
 //            float min_sim = 0;
             float max_sim = 0;
             int bbits =  mol->getNumOnBits();
-            for (int i = 0; i < dset_size; i++) {
+            for (int i = 0; i < size; i++) {
                 float ans = tanimotoSim(*(pointers[i]), count[i], *mol, bbits);
                 if (ans > max_sim ) {
                     max_sim = ans;
