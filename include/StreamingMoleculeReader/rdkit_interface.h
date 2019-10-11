@@ -122,7 +122,7 @@ namespace SMR {
                     std::cout << "one did noe work..." << std::endl;
                 }
             }
-            std::out << "Loaded all the fprints" << std::endl;
+            std::cout << "Loaded all the fprints" << std::endl;
             size = i;
         }
 
