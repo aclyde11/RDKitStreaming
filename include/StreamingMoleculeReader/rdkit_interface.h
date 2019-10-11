@@ -9,7 +9,8 @@
 #include <GraphMol/SmilesParse/SmilesParse.h>
 #include <GraphMol/FileParsers/FileParsers.h>
 #include <GraphMol/SmilesParse/SmilesWrite.h>
-#include <GraphMol/Fingerprints/Fingerprints.h>
+
+#include <GraphMol/Fingerprints/MorganFingerprints.h>
 #include <RDGeneral/export.h>
 #include <DataStructs/ExplicitBitVect.h>
 
@@ -38,14 +39,16 @@ namespace SMR {
 
 
     //MUST BE VALID.
-    ExplicitBitVect *getFingerPrint(std::string const &smi) {
+    ExplicitBitVect* getFingerPrint(std::string const &smi) {
         RDKit::ROMol *mol1 = nullptr;
         mol1 = RDKit::SmilesToMol(smi);
 
         if (mol1 == nullptr) {
             std::cerr << "ERROPROORORORO" << std::endl;
+            return nullptr;
         }
-        auto res = RDKit::RDKFingerprintMol(*mol1, 1, 7, 1024);
+
+        auto res = RDKit::MorganFingerprints::getFingerprintAsBitVect(*mol1, 6, 2);
         delete mol1;
         mol1 = nullptr;
         return res;
@@ -87,7 +90,7 @@ namespace SMR {
 
         if (mol1 != nullptr) {
             auto tmp = RDKit::MolToSmiles(*mol1);
-            auto res = RDKit::RDKFingerprintMol(*mol1, 1, 7, 1024);
+            auto res = RDKit::MorganFingerprints::getFingerprintAsBitVect(*mol1, 6, 2);
             delete mol1;
             mol1 = nullptr;
             return std::make_pair(tmp, res);
