@@ -27,7 +27,7 @@ namespace {
 using InQueue = moodycamel::ConcurrentQueue<std::string>;
 using QOutT = std::pair<std::string, float>;
 using OutQueue = moodycamel::ConcurrentQueue<QOutT>;
-using MinMaxSizeFillT = SMR::FastMinMax<100000>;
+using MinMaxSizeFillT = SMR::FastMinMax<1500000>;
 
 inline void task(std::string const& item, MutexCounter *total_counter, MutexCounter *valid_counter, OutQueue *qout, MinMaxSizeFillT *sm) {
     std::pair<boost::optional<std::string>, ExplicitBitVect*> value = getCannonicalSmileFromSmileFP(item);
@@ -36,7 +36,7 @@ inline void task(std::string const& item, MutexCounter *total_counter, MutexCoun
         valid_counter->increment();
 
         float ret = -1;
-        if ((static_cast <float> (rand()) / static_cast <float> (RAND_MAX)) < 0.01) {
+        if ((static_cast <float> (rand()) / static_cast <float> (RAND_MAX)) < 0.001) {
             ret = (*sm)(std::get<1>(value));
         }
         qout->enqueue(std::make_pair(std::get<0>(value).value(), ret));

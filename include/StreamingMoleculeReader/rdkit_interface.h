@@ -22,12 +22,26 @@ namespace SMR {
         return static_cast<float>(both) / static_cast<float>(denom);
     }
 
+    template<typename X>
+    inline float tanimotoSim(X const &A, int ac, X const &B) {
+        int both = (A & B).getNumOnBits();
+        int denom = A.getNumOnBits() + ac - both;
+        return static_cast<float>(both) / static_cast<float>(denom);
+    }
+
+    template<typename X>
+    inline float tanimotoSim(X const &A, int ac, X const &B, int bc) {
+        int both = (A & B).getNumOnBits();
+        int denom = bc + ac - both;
+        return static_cast<float>(both) / static_cast<float>(denom);
+    }
+
 
     //MUST BE VALID.
     ExplicitBitVect *getFingerPrint(std::string const &smi) {
         RDKit::ROMol *mol1 = nullptr;
         mol1 = RDKit::SmilesToMol(smi);
-        auto res = RDKit::RDKFingerprintMol(*mol1, 1, 7, 1024);
+        auto res = RDKit::RDKFingerprintMol(*mol1, 1, 7, 768);
         delete mol1;
         mol1 = nullptr;
         return res;
@@ -69,7 +83,7 @@ namespace SMR {
 
         if (mol1 != nullptr) {
             auto tmp = RDKit::MolToSmiles(*mol1);
-            auto res = RDKit::RDKFingerprintMol(*mol1, 1, 7, 1024);
+            auto res = RDKit::RDKFingerprintMol(*mol1, 1, 7, 768);
             delete mol1;
             mol1 = nullptr;
             return std::make_pair(tmp, res);
@@ -82,6 +96,7 @@ namespace SMR {
     template<int dset_size>
     struct FastMinMax {
         ExplicitBitVect  *pointers[dset_size];
+        int count[dset_size];
 
         FastMinMax(std::vector<std::string> const& smis_to_add) : pointers{nullptr} {
             int i = 0;
@@ -90,6 +105,7 @@ namespace SMR {
                     break;
                 }
                 auto fp = getFingerPrint(s);
+                count[i] = fp->getNumOnBits();
                 pointers[i] = fp;
                 i++;
             }
@@ -99,9 +115,9 @@ namespace SMR {
         {
 //            float min_sim = 0;
             float max_sim = 0;
-
+            int bbits =  mol->getNumOnBits();
             for (int i = 0; i < dset_size; i++) {
-                float ans = tanimotoSim(*(pointers[i]), *mol);
+                float ans = tanimotoSim(*(pointers[i]), count[i], *mol, bbits);
                 if (ans > max_sim ) {
                     max_sim = ans;
                 }
