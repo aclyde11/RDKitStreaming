@@ -41,6 +41,10 @@ namespace SMR {
     ExplicitBitVect *getFingerPrint(std::string const &smi) {
         RDKit::ROMol *mol1 = nullptr;
         mol1 = RDKit::SmilesToMol(smi);
+
+        if (mol1 == nullptr) {
+            std::cerr << "ERROPROORORORO" << std::endl;
+        }
         auto res = RDKit::RDKFingerprintMol(*mol1, 1, 7, 1024);
         delete mol1;
         mol1 = nullptr;
@@ -99,7 +103,7 @@ namespace SMR {
         int count[dset_size];
         int size;
 
-        FastMinMax(std::vector<std::string> const& smis_to_add) : pointers{nullptr} , count{0} {
+        explicit FastMinMax(std::vector<std::string> const& smis_to_add) : pointers{nullptr} , count{0} {
             int i = 0;
             for(auto const& s : smis_to_add) {
                 if (i >= dset_size) {
@@ -114,7 +118,7 @@ namespace SMR {
                     std::cerr << "one did noe work..." << std::endl;
                 }
             }
-
+            std::cerr << "Loaded all the fprints" << std::endl;
             size = i;
         }
 
