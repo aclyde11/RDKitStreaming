@@ -86,7 +86,7 @@ namespace SMR {
                             while (q.try_dequeue(item)) {
                                 itemsLeft = true;
                                 //work here:
-                                boost::optional<std::string> value = getCannonicalSmileFromSmile(item);
+                                optionalT<std::string> value = getCannonicalSmileFromSmile(item);
                                 if (value.has_value()) {
                                     q_out.enqueue(value.value());
                                 }
@@ -137,7 +137,7 @@ namespace SMR {
 
         // Collect any leftovers (could be some if e.g. consumers finish before producers)
         std::string item;
-        boost::optional<std::string> value;
+        optionalT<std::string> value;
         while (q.try_dequeue(item)) {
             value = getCannonicalSmileFromSmile(item);
             if (value.has_value()) {
@@ -188,7 +188,7 @@ namespace SMR {
                             while (q.try_dequeue(item)) {
                                 itemsLeft = true;
                                 //work here:
-                                boost::optional<std::string> value = getCannonicalSmileFromSmile(item);
+                                optionalT<std::string> value = getCannonicalSmileFromSmile(item);
                                 if (value.has_value()) {
                                     q_out.enqueue(value.value());
                                 }
@@ -239,7 +239,7 @@ namespace SMR {
 
         // Collect any leftovers (could be some if e.g. consumers finish before producers)
         std::string item;
-        boost::optional<std::string> value;
+        optionalT<std::string> value;
         while (q.try_dequeue(item)) {
             value = getCannonicalSmileFromSmile(item);
             if (value.has_value()) {

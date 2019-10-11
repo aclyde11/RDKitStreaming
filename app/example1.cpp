@@ -30,7 +30,7 @@ using OutQueue = moodycamel::ConcurrentQueue<QOutT>;
 using MinMaxSizeFillT = SMR::FastMinMax<100000>;
 
 inline void task(std::string const& item, MutexCounter *total_counter, MutexCounter *valid_counter, OutQueue *qout, MinMaxSizeFillT *sm) {
-    std::pair<boost::optional<std::string>, ExplicitBitVect*> value = getCannonicalSmileFromSmileFP(item);
+    std::pair<optionalT<std::string>, ExplicitBitVect*> value = getCannonicalSmileFromSmileFP(item);
     total_counter->increment();
     if (std::get<0>(value).has_value()) {
         valid_counter->increment();
@@ -153,7 +153,7 @@ int main(int argc, char **argv) {
                 [&](MutexCounter *total_counter, MutexCounter *valid_counter,
                     std::atomic<bool> *stop) {
                     std::string item;
-                    boost::optional<std::string> value;
+                    optionalT<std::string> value;
                     bool itemsLeft;
                     do {
                         // It's important to fence (if the producers have finished) *before* dequeueing

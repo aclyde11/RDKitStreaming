@@ -13,6 +13,9 @@
 #include <RDGeneral/export.h>
 #include <DataStructs/ExplicitBitVect.h>
 
+template<typename T>
+using optionalT = std::optional<T>;
+
 namespace SMR {
 
     template<typename X>
@@ -33,7 +36,7 @@ namespace SMR {
         return res;
     }
 
-    boost::optional<std::string> getCannonicalSmileFromSmile(std::string const &smi) {
+    optionalT<std::string> getCannonicalSmileFromSmile(std::string const &smi) {
         RDKit::ROMol *mol1 = nullptr;
         try {
             mol1 = RDKit::SmilesToMol(smi);
@@ -55,7 +58,7 @@ namespace SMR {
         }
     }
 
-    std::pair<boost::optional<std::string>, ExplicitBitVect *> getCannonicalSmileFromSmileFP(std::string const &smi) {
+    std::pair<optionalT<std::string>, ExplicitBitVect *> getCannonicalSmileFromSmileFP(std::string const &smi) {
         RDKit::ROMol *mol1 = nullptr;
         try {
             mol1 = RDKit::SmilesToMol(smi);
