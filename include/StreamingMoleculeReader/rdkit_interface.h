@@ -117,12 +117,12 @@ namespace SMR {
                     count[i] = fp->getNumOnBits();
                     pointers[i] = fp;
                     i++;
-                    std::cerr << i << std::endl;
+                    std::cout << i << std::endl;
                 } else {
-                    std::cerr << "one did noe work..." << std::endl;
+                    std::cout << "one did noe work..." << std::endl;
                 }
             }
-            std::cerr << "Loaded all the fprints" << std::endl;
+            std::out << "Loaded all the fprints" << std::endl;
             size = i;
         }
 
