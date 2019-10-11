@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
     myStdMap initial_set, big_initial_set;
     parallel_smile_set dbase, dbase_enamine;
 
-    std::cerr << " ladoign from cereal" << std::endl;
+//    std::cerr << " ladoign from cereal" << std::endl;
     if (LOAD) {
         if (argc == 5) {
             initial_set = getInitialSetFromFile(argv[4], n_threads, 1000000000);
@@ -131,14 +131,14 @@ int main(int argc, char **argv) {
             }, &valid_counters, &unique_counters, &total_counters, &enamine_unique_counters, &stopMonitar);
 
 
-    std::cerr << "reading in now" << std::endl;
+//    std::cerr << "reading in now" << std::endl;
 
     std::vector<std::string> sim;
     {
         using Reader = nop::StreamReader<std::ifstream>;
         nop::Deserializer<Reader> deserializer{argv[3]};
         deserializer.Read(&initial_set) || Die();
-        std::cout << initial_set.size() << std::endl;
+//        std::cout << initial_set.size() << std::endl;
 
         //convert STL to phmap
         for (std::pair<std::string, bool> element : initial_set) {
@@ -147,9 +147,9 @@ int main(int argc, char **argv) {
         }
         myStdMap().swap(initial_set);
     }
-    std::cerr << "gonna compute some fps" << std::endl;
+//    std::cerr << "gonna compute some fps" << std::endl;
     MinMaxSizeFillT simmaker{sim};
-    std::cerr << "made me stood maker" << std::endl;
+//    std::cerr << "made me stood maker" << std::endl;
 
     // Consumers
     for (size_t i = 1; i != n_threads; ++i) {

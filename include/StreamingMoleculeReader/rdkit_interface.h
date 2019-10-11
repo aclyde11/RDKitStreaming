@@ -115,10 +115,10 @@ namespace SMR {
                 if (fp != nullptr) {
                     pointers.push_back(std::make_pair(fp, fp->getNumOnBits()));
                 } else {
-                    std::cerr << "one did noe work..." << std::endl;
+//                    std::cerr << "one did noe work..." << std::endl;
                 }
             }
-            std::cout << "Loaded all the fprints" << std::endl;
+//            std::cout << "Loaded all the fprints" << std::endl;
             size = i;
         }
 
