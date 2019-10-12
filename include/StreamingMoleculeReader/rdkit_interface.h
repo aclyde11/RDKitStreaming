@@ -121,6 +121,7 @@ namespace SMR {
                 if (fp != nullptr) {
                     pointers.push_back(std::make_pair(fp, fp->getNumOnBits()));
                     std::cerr << "made finger print " << i << std::endl;
+                    i++;
                 } else {
                     std::cerr << "one did noe work..." << std::endl;
                 }
