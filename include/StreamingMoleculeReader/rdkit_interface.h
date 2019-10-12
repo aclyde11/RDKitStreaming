@@ -14,6 +14,8 @@
 #include <RDGeneral/export.h>
 #include <DataStructs/ExplicitBitVect.h>
 
+#include <tuple>
+
 namespace SMR {
 
     template<typename X>
@@ -129,16 +131,19 @@ namespace SMR {
             size = i;
         }
 
-        inline std::pair<float, float> operator ()(ExplicitBitVect *mol)
+        inline std::tuple<float, float, float> operator ()(ExplicitBitVect *mol)
         {
 //            float min_sim = 0;
             float max_sim = 0;
             float ans = 0;
-            float mean = 0;
+            float x_sum = 0;
+            float x_square_sum = 0;
+
             int bbits =  mol->getNumOnBits();
             for (int i = 0; i < size - 1; i++) {
                 ans = tanimotoSim(*(std::get<0>(pointers[i])), std::get<1>(pointers[i]), *mol, bbits);
-                mean += ans;
+                x_sum += ans;
+                x_square_sum += ans * ans;
                 if (ans > max_sim ) {
                     max_sim = ans;
                 }
@@ -146,7 +151,7 @@ namespace SMR {
 
             delete mol;
             mol = nullptr;
-            return std::make_pair(max_sim, mean / static_cast<float>(size - 1));
+            return std::make_tuple(max_sim, x_sum / static_cast<float>(size - 1), (x_square_sum - (x_sum * x_sum) / static_cast<float>(size - 1)) / (static_cast<float>(size - 1) - 1));
         }
     };
 }

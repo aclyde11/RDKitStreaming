@@ -25,7 +25,7 @@ namespace {
 }
 
 using InQueue = moodycamel::ConcurrentQueue<std::string>;
-using QOutT = std::pair<std::string, std::pair<float, float>>;
+using QOutT = std::pair<std::string, std::tuple<float, float, float>>;
 using OutQueue = moodycamel::ConcurrentQueue<QOutT>;
 using MinMaxSizeFillT = SMR::FastMinMax<1500000>;
 
@@ -36,7 +36,7 @@ inline void task(std::string const& item, MutexCounter *total_counter, MutexCoun
     if (std::get<0>(value).has_value()) {
         valid_counter->increment();
 
-        std::pair<float, float> ret = std::make_pair(-1,-1);
+        std::tuple<float, float, float> ret = std::make_tuple(-1,-1, -1);
         if (std::get<1>(value) != nullptr) {
             ret = (*sm)(std::get<1>(value));
         }
@@ -217,7 +217,7 @@ int main(int argc, char **argv) {
                         if (std::get<1>(meset->insert(std::get<0>(item)))) {
                             unique_counters[0].increment();
                             if (std::get<0>(std::get<1>(item)) != -1)
-                                myfile2 << std::get<0>(std::get<1>(item)) << "," << std::get<1>(std::get<1>(item)) << std::endl;
+                                myfile2 << std::get<0>(std::get<1>(item)) << "," << std::get<1>(std::get<1>(item))  << "," << std::get<2>(std::get<1>(item)) << std::endl;
                         }
                     }
                 }
