@@ -115,10 +115,10 @@ namespace SMR {
                 if (fp != nullptr) {
                     pointers.push_back(std::make_pair(fp, fp->getNumOnBits()));
                 } else {
-//                    std::cerr << "one did noe work..." << std::endl;
+                    std::cerr << "one did noe work..." << std::endl;
                 }
             }
-//            std::cout << "Loaded all the fprints" << std::endl;
+            std::cerr << "Loaded all the fprints" << std::endl;
             size = i;
         }
 
@@ -126,9 +126,10 @@ namespace SMR {
         {
 //            float min_sim = 0;
             float max_sim = 0;
+            float ans = 0;
             int bbits =  mol->getNumOnBits();
             for (int i = 0; i < size - 1; i++) {
-                float ans = tanimotoSim(*(std::get<0>(pointers[i])), std::get<1>(pointers[i]), *mol, bbits);
+                ans = tanimotoSim(*(std::get<0>(pointers[i])), std::get<1>(pointers[i]), *mol, bbits);
                 if (ans > max_sim ) {
                     max_sim = ans;
                 }

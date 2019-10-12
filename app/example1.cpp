@@ -6,7 +6,7 @@
 #include <chrono>
 #include <ctime>
 #include <parallel_hashmap/phmap.h>
-
+#include <random>
 #include <nop/serializer.h>
 #include <nop/utility/die.h>
 #include <nop/utility/stream_reader.h>
@@ -29,14 +29,15 @@ using QOutT = std::pair<std::string, float>;
 using OutQueue = moodycamel::ConcurrentQueue<QOutT>;
 using MinMaxSizeFillT = SMR::FastMinMax<1500000>;
 
-inline void task(std::string const& item, MutexCounter *total_counter, MutexCounter *valid_counter, OutQueue *qout, MinMaxSizeFillT *sm) {
+template<typename T,  typename Y>
+inline void task(std::string const& item, MutexCounter *total_counter, MutexCounter *valid_counter, OutQueue *qout, MinMaxSizeFillT *sm, T & rng, Y & unif) {
     std::pair<boost::optional<std::string>, ExplicitBitVect*> value = getCannonicalSmileFromSmileFP(item);
     total_counter->increment();
     if (std::get<0>(value).has_value()) {
         valid_counter->increment();
 
         float ret = -1;
-        if ((static_cast <float> (rand()) / static_cast <float> (RAND_MAX)) < 0.001) {
+        if ( unif(rng) < 0.001) {
             ret = (*sm)(std::get<1>(value));
         }
         qout->enqueue(std::make_pair(std::get<0>(value).value(), ret));
@@ -159,12 +160,21 @@ int main(int argc, char **argv) {
                     std::string item;
                     boost::optional<std::string> value;
                     bool itemsLeft;
+
+                    std::mt19937_64 rng;
+                    // initialize the random number generator with time-dependent seed
+                    uint64_t timeSeed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+                    std::seed_seq ss{uint32_t(timeSeed & 0xffffffff), uint32_t(timeSeed>>32)};
+                    rng.seed(ss);
+                    // initialize a uniform distribution between 0 and 1
+                    std::uniform_real_distribution<double> unif(0, 1);
+
                     do {
                         // It's important to fence (if the producers have finished) *before* dequeueing
                         itemsLeft = stop->load(std::memory_order_acquire);
                         while (q.try_dequeue(item)) {
                             itemsLeft = true;
-                            task(item, total_counter, valid_counter, &q_out, &simmaker);
+                            task(item, total_counter, valid_counter, &q_out, &simmaker, rng, unif);
                         }
                     } while (itemsLeft || doneConsumers.fetch_add(1, std::memory_order_acq_rel) + 1 == (n_threads - 1));
                 }, &total_counters[i],
@@ -229,8 +239,15 @@ int main(int argc, char **argv) {
 
     // Collect any leftovers (could be some if e.g. consumers finish before producers)
     std::string tmp;
+    std::mt19937_64 rng;
+    // initialize the random number generator with time-dependent seed
+    uint64_t timeSeed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+    std::seed_seq ss{uint32_t(timeSeed & 0xffffffff), uint32_t(timeSeed>>32)};
+    rng.seed(ss);
+    // initialize a uniform distribution between 0 and 1
+    std::uniform_real_distribution<double> unif(0, 1);
     while (q.try_dequeue(tmp)) {
-        task(tmp, &total_counters[0], &valid_counters[0], &q_out, &simmaker);
+        task(tmp, &total_counters[0], &valid_counters[0], &q_out, &simmaker, rng, unif);
     }
 
     QOutT item;
