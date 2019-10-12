@@ -129,14 +129,16 @@ namespace SMR {
             size = i;
         }
 
-        inline float operator ()(ExplicitBitVect *mol)
+        inline std::pair<float, float> operator ()(ExplicitBitVect *mol)
         {
 //            float min_sim = 0;
             float max_sim = 0;
             float ans = 0;
+            float mean = 0;
             int bbits =  mol->getNumOnBits();
             for (int i = 0; i < size - 1; i++) {
                 ans = tanimotoSim(*(std::get<0>(pointers[i])), std::get<1>(pointers[i]), *mol, bbits);
+                mean += ans;
                 if (ans > max_sim ) {
                     max_sim = ans;
                 }
@@ -144,7 +146,7 @@ namespace SMR {
 
             delete mol;
             mol = nullptr;
-            return max_sim;
+            return std::make_pair(max_sim, mean / static_cast<float>(size - 1));
         }
     };
 }

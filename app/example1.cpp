@@ -25,18 +25,18 @@ namespace {
 }
 
 using InQueue = moodycamel::ConcurrentQueue<std::string>;
-using QOutT = std::pair<std::string, float>;
+using QOutT = std::pair<std::string, std::pair<float, float>>;
 using OutQueue = moodycamel::ConcurrentQueue<QOutT>;
 using MinMaxSizeFillT = SMR::FastMinMax<1500000>;
 
 template<typename T,  typename Y>
 inline void task(std::string const& item, MutexCounter *total_counter, MutexCounter *valid_counter, OutQueue *qout, MinMaxSizeFillT *sm, T & rng, Y & unif) {
-    std::pair<boost::optional<std::string>, ExplicitBitVect*> value = getCannonicalSmileFromSmileFP(item, 0.001, rng, unif);
+    std::pair<boost::optional<std::string>, ExplicitBitVect*> value = getCannonicalSmileFromSmileFP(item, 0.0005, rng, unif);
     total_counter->increment();
     if (std::get<0>(value).has_value()) {
         valid_counter->increment();
 
-        float ret = -1;
+        std::pair<float, float> ret = std::make_pair(-1,-1);
         if (std::get<1>(value) != nullptr) {
             ret = (*sm)(std::get<1>(value));
         }
@@ -212,12 +212,12 @@ int main(int argc, char **argv) {
                 myfile2.open("out_sim_unique.txt");
 
                 while (!(stop->load(std::memory_order_acquire))) {
-                    std::pair<std::string, float> item;
+                    QOutT item;
                     while (q_out.try_dequeue(item)) {
                         if (std::get<1>(meset->insert(std::get<0>(item)))) {
                             unique_counters[0].increment();
-                            if (std::get<1>(item) != -1)
-                                myfile2 << std::get<1>(item) << std::endl;
+                            if (std::get<0>(std::get<1>(item)) != -1)
+                                myfile2 << std::get<0>(std::get<1>(item)) << "," << std::get<1>(std::get<1>(item)) << std::endl;
                         }
                     }
                 }
