@@ -27,7 +27,7 @@ namespace {
 using InQueue = moodycamel::ConcurrentQueue<std::string>;
 using QOutT = std::pair<std::string, float>;
 using OutQueue = moodycamel::ConcurrentQueue<QOutT>;
-using MinMaxSizeFillT = SMR::FastMinMax<1000>;
+using MinMaxSizeFillT = SMR::FastMinMax<100>;
 
 template<typename T,  typename Y>
 inline void task(std::string const& item, MutexCounter *total_counter, MutexCounter *valid_counter, OutQueue *qout, MinMaxSizeFillT *sm, T & rng, Y & unif) {
@@ -148,9 +148,9 @@ int main(int argc, char **argv) {
         }
         myStdMap().swap(initial_set);
     }
-//    std::cerr << "gonna compute some fps" << std::endl;
+    std::cerr << "gonna compute some fps" << std::endl;
     MinMaxSizeFillT simmaker{sim};
-//    std::cerr << "made me stood maker" << std::endl;
+    std::cerr << "made me stood maker" << std::endl;
 
     // Consumers
     for (size_t i = 1; i != n_threads; ++i) {
