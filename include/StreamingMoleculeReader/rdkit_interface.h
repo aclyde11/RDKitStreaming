@@ -120,7 +120,6 @@ namespace SMR {
                 auto fp = getFingerPrint(s);
                 if (fp != nullptr) {
                     pointers.push_back(std::make_pair(fp, fp->getNumOnBits()));
-                    std::cerr << "made finger print " << i << std::endl;
                     i++;
                 } else {
                     std::cerr << "one did noe work..." << std::endl;
@@ -137,9 +136,7 @@ namespace SMR {
             float ans = 0;
             int bbits =  mol->getNumOnBits();
             for (int i = 0; i < size - 1; i++) {
-//                ans = tanimotoSim(*(std::get<0>(pointers[i])), std::get<1>(pointers[i]), *mol, bbits);
-                ans = tanimotoSim(*(std::get<0>(pointers[i])), *mol);
-
+                ans = tanimotoSim(*(std::get<0>(pointers[i])), std::get<1>(pointers[i]), *mol, bbits);
                 if (ans > max_sim ) {
                     max_sim = ans;
                 }
