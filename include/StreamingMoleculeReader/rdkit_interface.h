@@ -76,7 +76,8 @@ namespace SMR {
         }
     }
 
-    std::pair<boost::optional<std::string>, ExplicitBitVect *> getCannonicalSmileFromSmileFP(std::string const &smi) {
+    template<typename T, typename Y>
+    std::pair<boost::optional<std::string>, ExplicitBitVect *> getCannonicalSmileFromSmileFP(std::string const &smi, float random_prob, T &rand, Y &unif) {
         RDKit::ROMol *mol1 = nullptr;
         try {
             mol1 = RDKit::SmilesToMol(smi);
@@ -90,7 +91,11 @@ namespace SMR {
 
         if (mol1 != nullptr) {
             auto tmp = RDKit::MolToSmiles(*mol1);
-            auto res = RDKit::MorganFingerprints::getFingerprintAsBitVect(*mol1, 3, 1024);
+            ExplicitBitVect *res;
+            if (unif(rand) < random_prob)
+                res = RDKit::MorganFingerprints::getFingerprintAsBitVect(*mol1, 3, 1024);
+            else
+                res = nullptr;
             delete mol1;
             mol1 = nullptr;
             return std::make_pair(tmp, res);
@@ -129,7 +134,9 @@ namespace SMR {
             float ans = 0;
             int bbits =  mol->getNumOnBits();
             for (int i = 0; i < size - 1; i++) {
-                ans = tanimotoSim(*(std::get<0>(pointers[i])), std::get<1>(pointers[i]), *mol, bbits);
+//                ans = tanimotoSim(*(std::get<0>(pointers[i])), std::get<1>(pointers[i]), *mol, bbits);
+                ans = tanimotoSim(*(std::get<0>(pointers[i])), *mol);
+
                 if (ans > max_sim ) {
                     max_sim = ans;
                 }

@@ -31,13 +31,13 @@ using MinMaxSizeFillT = SMR::FastMinMax<100>;
 
 template<typename T,  typename Y>
 inline void task(std::string const& item, MutexCounter *total_counter, MutexCounter *valid_counter, OutQueue *qout, MinMaxSizeFillT *sm, T & rng, Y & unif) {
-    std::pair<boost::optional<std::string>, ExplicitBitVect*> value = getCannonicalSmileFromSmileFP(item);
+    std::pair<boost::optional<std::string>, ExplicitBitVect*> value = getCannonicalSmileFromSmileFP(item, 0.01, rng, unif);
     total_counter->increment();
     if (std::get<0>(value).has_value()) {
         valid_counter->increment();
 
         float ret = -1;
-        if ( unif(rng) < 0.001) {
+        if (std::get<1>(value) != nullptr) {
             ret = (*sm)(std::get<1>(value));
         }
         qout->enqueue(std::make_pair(std::get<0>(value).value(), ret));
