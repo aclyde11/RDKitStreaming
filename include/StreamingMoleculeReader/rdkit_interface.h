@@ -114,11 +114,13 @@ namespace SMR {
             int i = 0;
             for(auto const& s : smis_to_add) {
                 if (i >= dset_size) {
-                    break;
+                    size = i;
+                    return;
                 }
                 auto fp = getFingerPrint(s);
                 if (fp != nullptr) {
                     pointers.push_back(std::make_pair(fp, fp->getNumOnBits()));
+                    std::cerr << "made finger print " << i << std::endl;
                 } else {
                     std::cerr << "one did noe work..." << std::endl;
                 }
