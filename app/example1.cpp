@@ -27,7 +27,7 @@ namespace {
 using InQueue = moodycamel::ConcurrentQueue<std::string>;
 using QOutT = std::pair<std::string, float>;
 using OutQueue = moodycamel::ConcurrentQueue<QOutT>;
-using MinMaxSizeFillT = SMR::FastMinMax<1500000>;
+using MinMaxSizeFillT = SMR::FastMinMax<1000>;
 
 template<typename T,  typename Y>
 inline void task(std::string const& item, MutexCounter *total_counter, MutexCounter *valid_counter, OutQueue *qout, MinMaxSizeFillT *sm, T & rng, Y & unif) {
